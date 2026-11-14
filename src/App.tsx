@@ -80,7 +80,7 @@ export default function App() {
         }
       }
       else accumulator = 0;
-      if (now - lastPaint >= 29 && lastPainted !== authoritative.current) {
+      if (lastPainted !== authoritative.current) {
         lastPaint = now;
         lastPainted = authoritative.current;
         setState(lastPainted);

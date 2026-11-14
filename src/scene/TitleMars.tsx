@@ -66,7 +66,7 @@ export function TitleMars() {
     const view = canvas.current, area = host.current;
     if (!view || !area) return;
     let renderer: WebGLRenderer;
-    try { renderer = new WebGLRenderer({ canvas: view, alpha: true, antialias: true }); }
+    try { renderer = new WebGLRenderer({ canvas: view, alpha: true, antialias: true, powerPreference: 'high-performance', stencil: false }); }
     catch { return; }
     const scene = new Scene();
     const camera = new OrthographicCamera(-1.2, 1.2, 1.2, -1.2, .1, 20);

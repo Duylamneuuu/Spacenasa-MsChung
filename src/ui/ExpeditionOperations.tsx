@@ -145,14 +145,21 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
   const [visited, setVisited] = useState(0);
   const [guide, setGuide] = useState(() => { try { return localStorage.getItem('apogee-tour-off-' + state.mission) !== '1'; } catch { return true; } });
   const [acked, setAcked] = useState<Set<string>>(() => new Set());
+  const planning = mode === 'planning', driving = mode === 'driving', ended = state.outcome !== null;
   const remaining = useMemo(() => route.slice(visited), [route, visited]);
-  const preview = previewRoute(state, remaining);
+  const preview = useMemo(() => previewRoute(state, remaining), [
+    planning ? state.position.x : visited,
+    planning ? state.position.z : visited,
+    remaining,
+    state.surveyed,
+    state.loadout,
+    state.mission,
+  ]);
   useEffect(() => { setVisited(0); }, [route]);
   useEffect(() => {
     if (mode === 'driving' && route[visited] && distance(state.position, route[visited]) <= .55) setVisited(visited + 1);
   }, [mode, route, state.position, visited]);
 
-  const planning = mode === 'planning', driving = mode === 'driving', ended = state.outcome !== null;
   const canEdit = planning && !effect && !ended;
   const speed = Math.abs(state.pose.speed);
   const candidate = siteAt(state.position);

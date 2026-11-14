@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Component, useLayoutEffect, useMemo, useRef } from 'react';
+import { Component, memo, useLayoutEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { BufferGeometry, Color, Float32BufferAttribute, Group, MathUtils, Matrix4, Object3D, Vector3 } from 'three';
 import type { InstancedMesh, Mesh, PerspectiveCamera } from 'three';
@@ -79,7 +79,8 @@ function GameCamera({ state, mode }: { state: MissionState; mode: ControlMode })
       eye.set(x * .35, 44 * reach, 34 * reach + z * .35);
       look.set(x * .35, 0, 2 + z * .35);
     }
-    const k = first.current ? 1 : 1 - Math.exp(-dt * (chase ? 5.5 : 3.2));
+    const delta = Math.min(dt, 0.05);
+    const k = first.current ? 1 : 1 - Math.exp(-delta * (chase ? 5.5 : 3.2));
     first.current = false;
     cam.position.lerp(eye, k);
     current.current.lerp(look, k);
@@ -90,7 +91,7 @@ function GameCamera({ state, mode }: { state: MissionState; mode: ControlMode })
   return null;
 }
 
-function Terrain({ onPick, enabled }: { onPick: (c: Cell) => void; enabled: boolean }) {
+const Terrain = memo(function Terrain({ onPick, enabled }: { onPick: (c: Cell) => void; enabled: boolean }) {
   const geometry = useMemo(bakeTerrain, []);
   const rocks = useRef<InstancedMesh>(null);
   const formations = useMemo(() => {
@@ -122,6 +123,7 @@ function Terrain({ onPick, enabled }: { onPick: (c: Cell) => void; enabled: bool
       mesh.setColorAt(i, new Color(color).multiplyScalar(.88 + random(x, z, 19) * .35));
     });
     mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
   }, [formations]);
   return <>
     <mesh geometry={geometry} onClick={event => {
@@ -134,9 +136,9 @@ function Terrain({ onPick, enabled }: { onPick: (c: Cell) => void; enabled: bool
       <dodecahedronGeometry args={[1, 0]} /><meshStandardMaterial roughness={1} flatShading />
     </instancedMesh>
   </>;
-}
+});
 
-function SectorFrame() {
+const SectorFrame = memo(function SectorFrame() {
   const geometry = useMemo(() => {
     const pts: number[] = [];
     const edge = (x0: number, z0: number, x1: number, z1: number) => {
@@ -152,43 +154,69 @@ function SectorFrame() {
     return g;
   }, []);
   return <lineSegments geometry={geometry}><lineBasicMaterial color="#ffd2a8" transparent opacity={.55} /></lineSegments>;
-}
+});
 
 function Ring({ color, radius, lift = 0, width = .13, opacity = .92 }: { color: string; radius: number; lift?: number; width?: number; opacity?: number }) {
   return <mesh position-y={lift} rotation-x={-Math.PI / 2}>
     <ringGeometry args={[radius - width, radius, 40]} /><meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
   </mesh>;
 }
-function Route({ preview, trace, chase }: { preview: PlanPreview; trace: MissionState['trace']; chase: boolean }) {
+const MAX_ROUTE_INSTANCES = 800;
+const scratchMatrix = new Matrix4();
+const scratchObj = new Object3D();
+const scratchUp = new Vector3(0, 1, 0);
+const scratchDir = new Vector3();
+const scratchColor = new Color();
+
+const Route = memo(function Route({ preview, trace, chase }: { preview: PlanPreview; trace: MissionState['trace']; chase: boolean }) {
   const items = useMemo(() => {
     const legs = [
       ...trace.slice(1).map((to, i) => ({ from: trace[i], to, color: '#f0d8c4', width: chase ? .035 : .09, gap: 0 })),
       ...preview.steps.map(s => ({ ...s, color: pathColors[s.risk], width: (s.uncertain ? .14 : .22) * (chase ? .35 : 1), gap: 1 })),
     ];
     return legs.flatMap(({ from, to, color, width, gap }) => Array.from({ length: 3 }, (_, i) => {
-      const at = (t: number) => new Vector3(...position({ x: MathUtils.lerp(from.x, to.x, t), z: MathUtils.lerp(from.z, to.z, t) }, chase ? .08 : .22));
+      const at = (t: number) => position({ x: MathUtils.lerp(from.x, to.x, t), z: MathUtils.lerp(from.z, to.z, t) }, chase ? .08 : .22);
       const a = at(i / 3), b = at(i / 3 + (gap ? .22 : .34));
-      return { center: a.clone().lerp(b, .5), direction: b.clone().sub(a), color, width };
+      return {
+        centerX: (a[0] + b[0]) * 0.5,
+        centerY: (a[1] + b[1]) * 0.5,
+        centerZ: (a[2] + b[2]) * 0.5,
+        dirX: b[0] - a[0],
+        dirY: b[1] - a[1],
+        dirZ: b[2] - a[2],
+        color,
+        width,
+      };
     }));
   }, [preview, trace, chase]);
   const ref = useRef<InstancedMesh>(null);
   useLayoutEffect(() => {
     const mesh = ref.current;
     if (!mesh) return;
-    const matrix = new Matrix4(), obj = new Object3D();
-    items.forEach(({ center, direction, width, color }, i) => {
-      obj.position.copy(center);
-      obj.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize());
-      obj.scale.set(width, direction.length(), width);
-      matrix.compose(obj.position, obj.quaternion, obj.scale);
-      mesh.setMatrixAt(i, matrix); mesh.setColorAt(i, new Color(color));
-    });
+    const count = Math.min(items.length, MAX_ROUTE_INSTANCES);
+    mesh.count = count;
+    for (let i = 0; i < count; i++) {
+      const it = items[i];
+      scratchDir.set(it.dirX, it.dirY, it.dirZ);
+      const len = scratchDir.length();
+      scratchObj.position.set(it.centerX, it.centerY, it.centerZ);
+      if (len > 1e-4) {
+        scratchDir.divideScalar(len);
+        scratchObj.quaternion.setFromUnitVectors(scratchUp, scratchDir);
+      }
+      scratchObj.scale.set(it.width, len, it.width);
+      scratchMatrix.compose(scratchObj.position, scratchObj.quaternion, scratchObj.scale);
+      mesh.setMatrixAt(i, scratchMatrix);
+      scratchColor.set(it.color);
+      mesh.setColorAt(i, scratchColor);
+    }
     mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }, [items]);
-  return items.length ? <instancedMesh key={items.length} ref={ref} args={[undefined, undefined, items.length]} frustumCulled={false}>
+  return <instancedMesh ref={ref} args={[undefined, undefined, MAX_ROUTE_INSTANCES]} frustumCulled={false}>
     <boxGeometry args={[1, 1, 1]} /><meshBasicMaterial toneMapped={false} />
-  </instancedMesh> : null;
-}
+  </instancedMesh>;
+});
 
 function Beacon({ color, height: h = 9, active = true }: { color: string; height?: number; active?: boolean }) {
   const ref = useRef<Mesh>(null);
@@ -196,7 +224,7 @@ function Beacon({ color, height: h = 9, active = true }: { color: string; height
   return <mesh ref={ref} position-y={h / 2}><cylinderGeometry args={[.09, .32, h, 8, 1, true]} /><meshBasicMaterial color={color} transparent opacity={.3} depthWrite={false} toneMapped={false} /></mesh>;
 }
 
-function Lander({ cell }: { cell: Cell }) {
+const Lander = memo(function Lander({ cell }: { cell: Cell }) {
   const at = position({ x: cell.x - 1.2, z: cell.z + .55 });
   return <group position={at}>
     <mesh position-y={.10}><cylinderGeometry args={[1.68, 1.86, .2, 8]} /><meshStandardMaterial color="#674639" /></mesh>
@@ -211,9 +239,9 @@ function Lander({ cell }: { cell: Cell }) {
     <pointLight color="#ffb46b" intensity={6} distance={9} position={[0, 2.4, 0]} />
     <Beacon color="#ffb46b" height={6} />
   </group>;
-}
+});
 
-function Dust({ state }: { state: MissionState }) {
+const Dust = memo(function Dust({ state }: { state: MissionState }) {
   const ref = useRef<InstancedMesh>(null);
   const puffs = useMemo(() => Array.from({ length: 40 }, () => ({ p: new Vector3(), v: new Vector3(), life: 0 })), []);
   const next = useRef(0);
@@ -221,8 +249,9 @@ function Dust({ state }: { state: MissionState }) {
   useFrame((_, dt) => {
     const mesh = ref.current;
     if (!mesh) return;
+    const delta = Math.min(dt, 0.05);
     const speed = Math.abs(state.pose.speed);
-    if (speed > .4 && Math.random() < speed * dt * 5) {
+    if (speed > .4 && Math.random() < speed * delta * 5) {
       const p = puffs[next.current++ % puffs.length];
       const [x, y, z] = position(state.position);
       const h = state.pose.heading, side = Math.random() < .5 ? -1 : 1;
@@ -231,8 +260,8 @@ function Dust({ state }: { state: MissionState }) {
       p.life = 1;
     }
     puffs.forEach((p, i) => {
-      p.life = Math.max(0, p.life - dt * .9);
-      p.p.addScaledVector(p.v, dt);
+      p.life = Math.max(0, p.life - delta * .9);
+      p.p.addScaledVector(p.v, delta);
       obj.position.copy(p.p); obj.scale.setScalar(p.life ? (1.25 - p.life) * .38 : 0); obj.updateMatrix();
       mesh.setMatrixAt(i, obj.matrix);
     });
@@ -241,7 +270,7 @@ function Dust({ state }: { state: MissionState }) {
   return <instancedMesh ref={ref} args={[undefined, undefined, puffs.length]} frustumCulled={false}>
     <icosahedronGeometry args={[.5, 0]} /><meshStandardMaterial color="#c98a63" transparent opacity={.22} depthWrite={false} roughness={1} />
   </instancedMesh>;
-}
+});
 
 function Vehicle({ state, effect }: { state: MissionState; effect: StationaryAction['type'] | null }) {
   const ref = useRef<Group>(null);
@@ -250,22 +279,33 @@ function Vehicle({ state, effect }: { state: MissionState; effect: StationaryAct
   const previous = useRef(state.distance);
   const pulseAge = useRef(0);
   const target = useMemo(() => new Vector3(), []);
+  const synced = useRef(false);
+
+  useLayoutEffect(() => {
+    if (!synced.current && ref.current) {
+      ref.current.position.set(...position(state.position));
+      ref.current.rotation.y = state.pose.heading;
+      synced.current = true;
+    }
+  }, []);
+
   useFrame((_, dt) => {
     const g = ref.current;
     if (!g) return;
+    const delta = Math.min(dt, 0.05);
     target.set(...position(state.position, .02));
-    g.position.lerp(target, Math.min(1, dt * 27));
-    const delta = state.pose.heading - g.rotation.y;
-    g.rotation.y += Math.atan2(Math.sin(delta), Math.cos(delta)) * Math.min(1, dt * 24);
+    g.position.lerp(target, Math.min(1, delta * 27));
+    const dAngle = state.pose.heading - g.rotation.y;
+    g.rotation.y += Math.atan2(Math.sin(dAngle), Math.cos(dAngle)) * Math.min(1, delta * 24);
     spin.current += (state.distance - previous.current) * Math.sign(state.pose.speed || 1);
     previous.current = state.distance;
     if (pulse.current) {
-      pulseAge.current += dt;
+      pulseAge.current += delta;
       const r = 1 + (pulseAge.current * (effect === 'scan' ? 6 : 2.4)) % (effect === 'scan' ? 9 : 3);
       pulse.current.scale.set(r, 1, r);
     } else pulseAge.current = 0;
   });
-  return <group ref={ref} position={position(state.position)} rotation-y={state.pose.heading}>
+  return <group ref={ref}>
     <mesh rotation-x={-Math.PI / 2} position-y={.03}><circleGeometry args={[1.5, 24]} /><meshBasicMaterial color="#2a1410" transparent opacity={.38} depthWrite={false} /></mesh>
     <RoverModel loadout={state.loadout} spin={spin} asset={ROVER_ASSET} />
     <spotLight color="#fff1d6" intensity={14} distance={16} angle={.55} penumbra={.6} position={[0, 1.2, 1]} />
@@ -279,7 +319,7 @@ class RenderFallback extends Component<{ children: ReactNode }, { failed: boolea
   render() { return this.state.failed ? <div className="map-fallback" role="status">WebGL is unavailable. Switch to the tactical map to keep playing.</div> : this.props.children; }
 }
 
-function Atmosphere() {
+const Atmosphere = memo(function Atmosphere() {
   return <>
     <color attach="background" args={[SKY]} />
     <fog attach="fog" args={[HAZE, 55, 190]} />
@@ -288,12 +328,34 @@ function Atmosphere() {
     <directionalLight color="#ffe2b8" intensity={2.6} position={[-40, 50, -22]} />
     <directionalLight color="#9fb3cf" intensity={.35} position={[20, 10, 30]} />
   </>;
-}
+});
+
+const TargetSite = memo(function TargetSite({ id, done, held, planning, onPick }: { id: string; done: boolean; held: boolean; planning: boolean; onPick: (cell: Cell) => void }) {
+  const site = SITES[id as keyof typeof SITES];
+  const color = done ? '#a9f6bb' : held ? '#ffd27a' : '#7fe3df';
+  return <group position={position(site.cell, .12)} onClick={e => { if (!planning) return; e.stopPropagation(); onPick(site.cell); }}>
+    <mesh position={[.72, .5, -.52]} rotation={[.09, .4, .18]}><dodecahedronGeometry args={[.68, 0]} /><meshStandardMaterial color="#d3b6a0" roughness={1} flatShading /></mesh>
+    <mesh position={[-.79, .31, -.21]}><dodecahedronGeometry args={[.39, 0]} /><meshStandardMaterial color="#b98c73" roughness={1} /></mesh>
+    <Ring color={color} radius={3.1} width={.1} opacity={.85} />
+    <Beacon color={color} active={!done} height={done ? 4 : 11} />
+    <mesh position-y={2.2} rotation-y={Math.PI / 4}><octahedronGeometry args={[.42]} /><meshBasicMaterial color={color} toneMapped={false} /></mesh>
+  </group>;
+});
 
 export function ExpeditionScene({ state, preview, waypoints, mode, effect, onPick }: { state: MissionState; preview: PlanPreview; waypoints: readonly Cell[]; mode: ControlMode; effect: StationaryAction['type'] | null; onPick: (cell: Cell) => void }) {
   const mission = MISSIONS[state.mission];
   const planning = mode === 'planning';
-  return <RenderFallback><Canvas dpr={[1, 1.75]} camera={{ fov: 40, near: .1, far: 420, position: [0, 44, 34] }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
+  return <RenderFallback><Canvas
+    dpr={[1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 1.5)]}
+    camera={{ fov: 40, near: .1, far: 420, position: [0, 44, 34] }}
+    gl={{
+      antialias: true,
+      powerPreference: 'high-performance',
+      alpha: false,
+      stencil: false,
+      depth: true,
+    }}
+  >
     <Atmosphere />
     <GameCamera state={state} mode={mode} />
     <Terrain onPick={onPick} enabled={planning} />
@@ -304,17 +366,9 @@ export function ExpeditionScene({ state, preview, waypoints, mode, effect, onPic
     </mesh>)}
     <Lander cell={mission.start} />
     {mission.targets.map(id => {
-      const site = SITES[id];
       const done = state.delivered.some(s => s.site === id);
       const held = state.pending.some(s => s.site === id);
-      const color = done ? '#a9f6bb' : held ? '#ffd27a' : '#7fe3df';
-      return <group key={id} position={position(site.cell, .12)} onClick={e => { if (!planning) return; e.stopPropagation(); onPick(site.cell); }}>
-        <mesh position={[.72, .5, -.52]} rotation={[.09, .4, .18]}><dodecahedronGeometry args={[.68, 0]} /><meshStandardMaterial color="#d3b6a0" roughness={1} flatShading /></mesh>
-        <mesh position={[-.79, .31, -.21]}><dodecahedronGeometry args={[.39, 0]} /><meshStandardMaterial color="#b98c73" roughness={1} /></mesh>
-        <Ring color={color} radius={3.1} width={.1} opacity={.85} />
-        <Beacon color={color} active={!done} height={done ? 4 : 11} />
-        <mesh position-y={2.2} rotation-y={Math.PI / 4}><octahedronGeometry args={[.42]} /><meshBasicMaterial color={color} toneMapped={false} /></mesh>
-      </group>;
+      return <TargetSite key={id} id={id} done={done} held={held} planning={planning} onPick={onPick} />;
     })}
     {waypoints.filter(c => !same(c, state.position)).map((c, i) => <group key={i} position={position(c, .2)}>
       <Ring color="#ffd27a" radius={1.05} width={.12} />
@@ -342,7 +396,17 @@ function HangarCamera() {
 }
 export function HangarScene({ loadout }: { loadout: Loadout }) {
   const spin = useRef(0);
-  return <RenderFallback><Canvas dpr={[1, 1.75]} camera={{ fov: 32, near: .1, far: 80 }} gl={{ antialias: true }}>
+  return <RenderFallback><Canvas
+    dpr={[1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 1.5)]}
+    camera={{ fov: 32, near: .1, far: 80 }}
+    gl={{
+      antialias: true,
+      powerPreference: 'high-performance',
+      alpha: false,
+      stencil: false,
+      depth: true,
+    }}
+  >
     <color attach="background" args={['#0d0a09']} />
     <fog attach="fog" args={['#0d0a09', 9, 22]} />
     <HangarCamera />

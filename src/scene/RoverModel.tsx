@@ -1,4 +1,4 @@
-import { Component, Suspense, useLayoutEffect, useMemo, useRef } from 'react';
+import { Component, memo, Suspense, useLayoutEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { Group, Object3D } from 'three';
@@ -18,11 +18,11 @@ const wheelSpec = {
 };
 type Pos = [number, number, number];
 
-function Box({ at, size, color }: { at: Pos; size: Pos; color: string }) {
+const Box = memo(function Box({ at, size, color }: { at: Pos; size: Pos; color: string }) {
   return <mesh position={at}><boxGeometry args={size} /><meshStandardMaterial color={color} roughness={.76} /></mesh>;
-}
+});
 
-function Wheel({ wheel, at, spin, fixedHeight = false }: { wheel: WheelId; at: readonly [number, number, number]; spin: Spin; fixedHeight?: boolean }) {
+const Wheel = memo(function Wheel({ wheel, at, spin, fixedHeight = false }: { wheel: WheelId; at: readonly [number, number, number]; spin: Spin; fixedHeight?: boolean }) {
   const ref = useRef<Group>(null);
   const { radius, width, rim, tread, teeth } = wheelSpec[wheel];
   useFrame(() => { if (ref.current) ref.current.rotation.x = spin.current / radius; });
@@ -35,9 +35,9 @@ function Wheel({ wheel, at, spin, fixedHeight = false }: { wheel: WheelId; at: r
       </group>)}
     </group>
   </group>;
-}
+});
 
-function Attachment({ name, loadout }: { name: typeof attachmentNames[number]; loadout: Loadout }) {
+const Attachment = memo(function Attachment({ name, loadout }: { name: typeof attachmentNames[number]; loadout: Loadout }) {
   if (name === 'Scanner_Mount') return !loadout.scanner ? null : <>
     <Box at={[0, .34, 0]} size={[.11, .73, .11]} color="#c5ad84" />
     <Box at={[0, .70, 0]} size={[loadout.scanner === 'stereo' ? .63 : .39, .19, .22]} color="#ded8c3" />
@@ -51,9 +51,9 @@ function Attachment({ name, loadout }: { name: typeof attachmentNames[number]; l
     <Box at={[0, 0, 0]} size={[2.09, .062, .93]} color="#8f7358" />
     {[-1, 1].flatMap(side => [0, 1, 2, 3].map((i) => <Box key={`${side}-${i}`} at={[side * (.15 + i * .245), .039, 0]} size={[.224, .019, .87]} color={i % 2 ? '#283944' : '#324b5a'} />))}
   </group>;
-}
+});
 
-function Procedural({ loadout, spin }: { loadout: Loadout; spin: Spin }) {
+const Procedural = memo(function Procedural({ loadout, spin }: { loadout: Loadout; spin: Spin }) {
   return <group>
     <Box at={[0, .62, -.03]} size={[1.49, .44, 1.91]} color="#e2d4b8" />
     <Box at={[0, .42, -.03]} size={[1.34, .24, 1.80]} color="#6e665d" />
@@ -70,7 +70,7 @@ function Procedural({ loadout, spin }: { loadout: Loadout; spin: Spin }) {
     <group position={[0, .89, -.47]}><Attachment name="Solar_Mount" loadout={loadout} /></group>
     <mesh position={[-.42, 1.05, -.79]}><cylinderGeometry args={[.022, .022, .47, 7]} /><meshStandardMaterial color="#ded8c3" /></mesh>
   </group>;
-}
+});
 
 class AssetBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -105,11 +105,11 @@ function Imported({ asset, loadout, spin }: { asset: RoverAsset; loadout: Loadou
   </group>;
 }
 
-export function RoverModel({ loadout, spin, asset }: { loadout: Loadout; spin: Spin; asset?: RoverAsset }) {
+export const RoverModel = memo(function RoverModel({ loadout, spin, asset }: { loadout: Loadout; spin: Spin; asset?: RoverAsset }) {
   const fallback = <Procedural loadout={loadout} spin={spin} />;
   if (!asset) return fallback;
   return <AssetBoundary key={asset.url} fallback={fallback}>
     <Suspense fallback={fallback}><Imported asset={asset} loadout={loadout} spin={spin} /></Suspense>
   </AssetBoundary>;
-}
+});
 

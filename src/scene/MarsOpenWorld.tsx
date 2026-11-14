@@ -1263,6 +1263,8 @@ export function MarsOpenWorld(props: MarsOpenWorldProps) {
     <div className="mars-3d-open-world-canvas-wrap">
       <Canvas
         shadows
+        dpr={[1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 1.5)]}
+        gl={{ powerPreference: 'high-performance', antialias: true, stencil: false }}
         camera={{ position: [0, 8, -12], fov: 62, near: 0.1, far: 600 }}
       >
         {/* Authentic Martian Atmosphere Background */}

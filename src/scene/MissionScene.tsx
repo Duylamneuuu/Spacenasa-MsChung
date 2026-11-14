@@ -898,6 +898,8 @@ export function MissionScene({ state, onStationClick }: MissionSceneProps) {
       <Canvas
         shadows
         orthographic
+        dpr={[1, Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 1.5)]}
+        gl={{ powerPreference: 'high-performance', antialias: true, stencil: false }}
         camera={{ zoom: 34, near: 0.1, far: 200, position: [14, 15, 14] }}
       >
         <DioramaCameraRig rotationAngle={rotationAngle} />
