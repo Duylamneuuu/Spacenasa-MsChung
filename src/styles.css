@@ -1,0 +1,21 @@
+* { box-sizing: border-box; }
+:root { font-family: Inter, system-ui, sans-serif; color: #e8f2ff; background: #0b1220; }
+body { margin: 0; }
+.app-shell { max-width: 1320px; margin: 0 auto; padding: 22px; }
+.kicker { text-transform: uppercase; letter-spacing: .18em; font-size: .75rem; color: #7ccce4; }
+h1 { margin: 4px 0; font-size: clamp(1.6rem, 4vw, 2.4rem); }
+h2 { margin: 0 0 16px; font-size: 1.15rem; }
+small { font-size: .7rem; color: #f9b777; }
+.note { font-size: .85rem; color: #a1b4d0; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; margin-top: 22px; }
+.panel { background: #152238; border: 1px solid #32465f; border-radius: 14px; padding: 17px; }
+.main-panel { min-width: 0; }
+.header-row { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; font-size: .9rem; }
+.scene-shell { height: min(52vw, 450px); min-height: 290px; width: 100%; position: relative; background: #101b2a; border-radius: 10px; overflow: hidden; }
+.scene-caption { position: absolute; left: 15px; bottom: 12px; pointer-events: none; color: #b4c9d7; font-size: .8rem; }
+.controls { margin-top: 15px; display: flex; gap: 10px; }
+button { border: 0; color: #102230; background: #6bd1e7; border-radius: 8px; font-weight: bold; padding: 10px 14px; cursor: pointer; }
+button.secondary { color: #e8f2ff; background: #31455f; }
+dl { display: grid; grid-template-columns: 1fr auto; gap: 13px 8px; margin: 0; font-size: .9rem; }
+dt { color: #a1b4d0; } dd { margin: 0; font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) { .workspace { grid-template-columns: 1fr; } }
