@@ -6,6 +6,24 @@ NASA Space Apps Challenge 2026 · **Challenge 13: Space Mission Design Game**.
 
 > IMPORTANT: Our game must let users **design, manage, and simulate an entire space mission**, showing engineering trade-offs and consequences. It is **not** an endless space colony builder.
 
+## Start here — team collaboration
+
+- [Collaboration guide: clone, branches, PRs, merge cadence](docs/COLLABORATION.md)
+- [UI–3D–simulation shared interfaces](docs/INTERFACES.md)
+- [Tasks: Duy, Bảo, Hải, Sơn, Cường](https://github.com/Duylamneuuu/Spacenasa-MsChung/issues)
+- [Pull requests — see current code changes](https://github.com/Duylamneuuu/Spacenasa-MsChung/pulls)
+- [Build check](https://github.com/Duylamneuuu/Spacenasa-MsChung/actions)
+
+Run the scaffold with **Node.js 20+**:
+
+```bash
+npm install
+npm run dev
+npm run build
+```
+
+The current 3D scene, simulation and resource values are **mock placeholders**, not a finished game or NASA-verified physics. Duy owns integration; contributors use PRs, never push directly to `main`.
+
 ## Mission loop (MVP)
 
 1. **Plan:** Select one mission objective, inspect constraints and available budget.
