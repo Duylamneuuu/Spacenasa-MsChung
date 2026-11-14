@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { WorldObject3D, SandTrap3D, ScienceOutcrop3D, DebrisSite3D } from '../scene/terrainMath';
 
 interface MarsMinimapProps {
@@ -10,6 +10,7 @@ interface MarsMinimapProps {
   sandTraps: SandTrap3D[];
   scienceSamples: ScienceOutcrop3D[];
   debrisSites: DebrisSite3D[];
+  radarPulseRadius?: number | null;
 }
 
 export function MarsMinimap({
@@ -21,10 +22,29 @@ export function MarsMinimap({
   sandTraps,
   scienceSamples,
   debrisSites,
+  radarPulseRadius = null,
 }: MarsMinimapProps) {
   const radarRadiusMeters = 85; // radar view radius in meters
   const sizePx = 170;
   const centerPx = sizePx / 2;
+
+  // Continuous rotating radar sweep angle (deg)
+  const [sweepAngle, setSweepAngle] = useState(0);
+
+  useEffect(() => {
+    let animId: number;
+    let lastTime = performance.now();
+
+    const loop = (now: number) => {
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+      setSweepAngle(prev => (prev + dt * 120) % 360);
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, []);
 
   // Converts a world (x, z) relative to rover into minimap (px, py)
   const toMinimapCoords = (wx: number, wz: number) => {
@@ -39,6 +59,12 @@ export function MarsMinimap({
 
   const distToLander = Math.round(Math.sqrt(roverX * roverX + roverZ * roverZ));
 
+  // Pulse wave in minimap pixels
+  const pulsePx =
+    radarPulseRadius !== null && radarPulseRadius > 0
+      ? Math.min(centerPx - 4, (radarPulseRadius / radarRadiusMeters) * (centerPx - 10))
+      : null;
+
   return (
     <div className="mars-minimap-container">
       <div className="minimap-header">
@@ -49,13 +75,48 @@ export function MarsMinimap({
       <div className="minimap-radar-screen" style={{ width: sizePx, height: sizePx }}>
         <svg width={sizePx} height={sizePx} className="radar-svg">
           {/* Radar Background & Grid Rings */}
-          <circle cx={centerPx} cy={centerPx} r={centerPx - 4} fill="#090d16" stroke="#1e3a8a" strokeWidth="1.5" />
+          <circle cx={centerPx} cy={centerPx} r={centerPx - 4} fill="#060911" stroke="#1e3a8a" strokeWidth="1.5" />
           <circle cx={centerPx} cy={centerPx} r={(centerPx - 4) * 0.66} fill="none" stroke="#1e293b" strokeDasharray="3 3" />
           <circle cx={centerPx} cy={centerPx} r={(centerPx - 4) * 0.33} fill="none" stroke="#1e293b" strokeDasharray="3 3" />
 
           {/* Crosshairs */}
           <line x1={centerPx} y1={6} x2={centerPx} y2={sizePx - 6} stroke="rgba(56, 189, 248, 0.15)" strokeWidth="1" />
           <line x1={6} y1={centerPx} x2={sizePx - 6} y2={centerPx} stroke="rgba(56, 189, 248, 0.15)" strokeWidth="1" />
+
+          {/* Rotating Radar Sweep Beam */}
+          <g transform={`rotate(${sweepAngle}, ${centerPx}, ${centerPx})`}>
+            <line
+              x1={centerPx}
+              y1={centerPx}
+              x2={centerPx + (centerPx - 6)}
+              y2={centerPx}
+              stroke="rgba(56, 189, 248, 0.85)"
+              strokeWidth="1.5"
+            />
+          </g>
+
+          {/* Active 3D Expanding Radar Pulse Wave Ring */}
+          {pulsePx !== null && (
+            <g>
+              <circle
+                cx={centerPx}
+                cy={centerPx}
+                r={pulsePx}
+                fill="rgba(56, 189, 248, 0.18)"
+                stroke="#38bdf8"
+                strokeWidth="2"
+              />
+              <circle
+                cx={centerPx}
+                cy={centerPx}
+                r={Math.max(0, pulsePx - 4)}
+                fill="none"
+                stroke="#bae6fd"
+                strokeWidth="1"
+                opacity="0.8"
+              />
+            </g>
+          )}
 
           {/* Lander Base (🏠) */}
           {(() => {
@@ -87,17 +148,35 @@ export function MarsMinimap({
             );
           })}
 
-          {/* Sand Traps (⚠️ - only if revealed by GPR scan) */}
+          {/* Sand Traps (⚠️) */}
           {sandTraps.map(trap => {
-            if (!trap.revealed) return null;
             const { px, py, dist } = toMinimapCoords(trap.x, trap.z);
             if (dist > radarRadiusMeters) return null;
-            return (
-              <g key={trap.id} transform={`translate(${px}, ${py})`}>
-                <circle r="7" fill="rgba(239, 68, 68, 0.25)" stroke="#ef4444" strokeWidth="1.2" />
-                <circle r="3" fill="#ef4444" />
-              </g>
-            );
+
+            if (trap.revealed) {
+              // Fully revealed by Radar scan: Bright Red Warning
+              return (
+                <g key={trap.id} transform={`translate(${px}, ${py})`}>
+                  <circle r="8" fill="rgba(239, 68, 68, 0.35)" stroke="#ef4444" strokeWidth="1.5" />
+                  <circle r="3.5" fill="#ef4444" />
+                  <text x="6" y="-3" fill="#ef4444" fontSize="7" fontWeight="bold">DUNE</text>
+                </g>
+              );
+            } else {
+              // Unrevealed: Faint soft amber perimeter indicating dune ripples
+              return (
+                <circle
+                  key={trap.id}
+                  cx={px}
+                  cy={py}
+                  r="6"
+                  fill="rgba(217, 119, 6, 0.15)"
+                  stroke="#d97706"
+                  strokeWidth="1"
+                  strokeDasharray="2 2"
+                />
+              );
+            }
           })}
 
           {/* Science Rock Samples (💎) */}
@@ -147,7 +226,7 @@ export function MarsMinimap({
       </div>
 
       <div className="minimap-legend">
-        <span>🔵 Trạm Đổ Bộ</span>
+        <span>🔵 Trạm HQ</span>
         <span>🟡 Đồi Nắng</span>
         <span>🔴 Cát Lún</span>
         <span>🟣 Mẫu Đá</span>

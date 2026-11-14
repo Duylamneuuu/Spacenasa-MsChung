@@ -266,11 +266,11 @@ export function scanTerrain(surface: RoverSurfaceState): RoverSurfaceState {
 
   if (sensor.revealsHiddenSand) {
     next.logs.unshift(
-      `📡 RADAR XUYÊN ĐẤT RIMFAX (-${drain}⚡): Đã quét bán kính ${radius} ô! Soi rõ ${revealedHazards} bẫy cát ngầm ⚠️ và ${revealedSamples} mẫu vật khoa học 💎!`
+      `📡 RADAR XUYÊN ĐẤT RIMFAX (-${drain}⚡): Đã quét xuyên lòng đất 75m! Định vị chính xác toàn bộ túi cát lún ngầm ⚠️ và lõi khoáng sản 💎.`
     );
   } else {
     next.logs.unshift(
-      `📷 CAMERA QUANG HỌC NavCam (-${drain}⚡): Đã chụp quang cảnh 1 ô sát cạnh. Cảnh báo: NavCam KHÔNG THỂ phát hiện cát lún ngầm dưới bụi!`
+      `📷 CAMERA QUANG HỌC NavCam (-${drain}⚡): Đã quét quang học địa hình 35m! Nhận diện các dải cồn cát mềm ⚠️ và mẫu đá trầm tích 💎 quanh xe.`
     );
   }
 
