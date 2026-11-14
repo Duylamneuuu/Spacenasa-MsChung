@@ -6,6 +6,7 @@ import { DesignView } from './ui/DesignView';
 import { PreflightLaunchView } from './ui/PreflightLaunchView';
 import { OperationsView } from './ui/OperationsView';
 import { DebriefView } from './ui/DebriefView';
+import { StartMenuView } from './ui/StartMenuView';
 import { applyAction, evaluateMission, getInitialState } from './sim/engine';
 import type { MissionState, PlayerAction, Phase } from './types/game';
 
@@ -24,6 +25,11 @@ export default function App() {
     { phase: 'debrief', label: '5. DEBRIEF (Outcome Analysis)', stepNumber: 5 },
   ];
 
+  // If in startmenu phase, render the cinematic 3D Mars Start Menu
+  if (state.phase === 'startmenu') {
+    return <StartMenuView state={state} send={send} />;
+  }
+
   return (
     <main className="app-shell">
       {/* Header */}
@@ -33,14 +39,24 @@ export default function App() {
             <p className="kicker">NASA Space Apps Challenge 2026 · Challenge 13: Space Mission Design Game</p>
             <h1>APOGEE: MARS ROVER ARCHITECT</h1>
           </div>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => setShow3DScene(!show3DScene)}
-            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-          >
-            {show3DScene ? '▲ Hide 3D Mission Control' : '▼ Show 3D Mission Control'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => send({ type: 'SET_PHASE', phase: 'startmenu' })}
+              style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+            >
+              ⌂ Title / Start Menu
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setShow3DScene(!show3DScene)}
+              style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+            >
+              {show3DScene ? '▲ Hide 3D Mission Control' : '▼ Show 3D Mission Control'}
+            </button>
+          </div>
         </div>
         <p className="note">
           Systems Engineering Simulator: Balance limited budget ($M), rocket payload mass (kg), battery power (⚡), comms bandwidth, and launch Delta-v (m/s).

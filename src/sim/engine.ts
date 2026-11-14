@@ -17,7 +17,7 @@ import {
   calculateMissionOutcome,
 } from './roverEngine';
 
-const PHASES: Phase[] = ['briefing', 'design', 'preflight', 'launch', 'operations', 'debrief'];
+const PHASES: Phase[] = ['startmenu', 'briefing', 'design', 'preflight', 'launch', 'operations', 'debrief'];
 
 /**
  * Calculates current mission resources based on active equipment, depot spares, and landing site.
@@ -101,7 +101,7 @@ export function getInitialState(siteId: LandingSiteId = DEFAULT_LANDING_SITE_ID)
   );
 
   return {
-    phase: 'briefing',
+    phase: 'startmenu',
     objectiveId: siteId,
     activeLandingSite: siteId,
     selectedModuleIds: initialSelected,

@@ -1,7 +1,7 @@
 // Shared types for APOGEE: MARS ROVER ARCHITECT
 // NASA Space Apps Challenge 2026 - Challenge 13: Space Mission Design Game
 
-export type Phase = 'briefing' | 'design' | 'preflight' | 'launch' | 'operations' | 'debrief';
+export type Phase = 'startmenu' | 'briefing' | 'design' | 'preflight' | 'launch' | 'operations' | 'debrief';
 
 export type LandingSiteId = 'utopia_planitia' | 'jezero_crater' | 'valles_marineris';
 
