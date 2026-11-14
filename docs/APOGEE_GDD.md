@@ -1,18 +1,20 @@
-# APOGEE: Mars Rover Architect — Game Design Document v1.0
+# APOGEE — Mars Rover Architect | Approved GDD v2: Plan & Drive
 
-**Team:** MS Chung · **NASA Space Apps 2026** · **Approved concept:** 2026-11-14
+**Team:** MS Chung · **NASA Space Apps 2026** · **Approved on:** 2026-11-14
 
-**Editable Google Docs origin:** https://docs.google.com/document/d/1V2svKyaGYkj_hA6f7MTabp8gnvi-QhEMNVChFwML8yE/edit
+**Editable Google Doc:** https://docs.google.com/document/d/1V2svKyaGYkj_hA6f7MTabp8gnvi-QhEMNVChFwML8yE/edit
 
-> This is a Markdown snapshot of the agreed Google Doc. It is not an automatically synchronized mirror. Confirm future concept edits with Duy before changing implementation contracts.
+> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
+
+> Markdown snapshot of the Google Doc at the time of this commit. Further document edits require re-sync; only the GDD, not the current code, is approved by this specification.
 
 *GAME DESIGN DOCUMENT (GDD) · MS CHUNG · NASA SPACE APPS 2026 · Bản thống nhất 14/11/2026*
 
-Trạng thái: Concept đã chốt để triển khai MVP. Một hành tinh Sao Hỏa, nhiều môi trường/địa hình và nhiều nhiệm vụ khoa học. Trải nghiệm chiến thuật Plan & Execute trong bản đồ Three.js 2.5D/isometric.
+Trạng thái: CONCEPT ĐÃ CHỐT — APOGEE dùng Plan & Drive (lập tuyến trước, tự lái WASD sau). Một Sao Hỏa, nhiều địa hình và nhiều nhiệm vụ khoa học. Bản đồ Three.js low-poly 2.5D/isometric khi lập kế hoạch; camera bám theo xe khi lái. QUY ĐỊNH BẮT BUỘC: toàn bộ trải nghiệm trong game 100% TIẾNG ANH, gồm menu, HUD, tên mission, tutorial, thông báo, logs, nút, cảnh báo, accessibility labels, science copy và Mission Report. Tài liệu nội bộ có thể viết tiếng Việt.
 
 ## 1. TẦM NHÌN VÀ GIỚI HẠN
 
-APOGEE là trò chơi giáo dục về thiết kế và điều hành một nhiệm vụ rover trên Sao Hỏa. Người chơi lắp cấu hình xe trong giới hạn ngân sách và tải trọng, chọn tuyến khảo sát giữa các loại địa hình, gửi kế hoạch, quan sát rover thực thi, thu dữ liệu khoa học và cải tiến chiến thuật. Mọi lựa chọn kỹ thuật có lợi thế và cái giá phải trả.
+APOGEE là trò chơi giáo dục thiết kế và điều hành nhiệm vụ rover trên Sao Hỏa. Người chơi chọn rover, phụ kiện và giới hạn tải trọng, vạch tuyến thám hiểm trước khi xuất phát, xem dự báo năng lượng/thời gian/rủi ro, rồi tự lái xe theo đường hướng dẫn bằng WASD. Lái lệch tuyến sẽ có chi phí thực tế riêng; người chơi khảo sát, truyền kết quả khoa học và học các đánh đổi thiết kế. Không phải game tự lái autopilot.
 
 Điểm khác biệt: cùng một mission có thể giải bằng nhiều cấu hình và nhiều tuyến đường. Đi qua cát để rút ngắn quãng đường hay vòng qua đá cứng để tiết kiệm pin? Mang bánh nặng để giảm nguy cơ hay giữ xe nhẹ để khảo sát nhanh? Kết quả phải được mô phỏng và giải thích, không quyết định bằng nút chọn A/B/C.
 
@@ -20,7 +22,7 @@ Bám đề Space Mission Design Game: màn Mission Design thể hiện mission o
 
 ## 2. MASTER GAME LOOP
 
-(1) SELECT MISSION → (2) DESIGN ROVER & PAYLOAD → (3) PREFLIGHT CHECK → (4) DEPLOY (chuyển cảnh ngắn) → (5) PLAN ROUTE & SCIENCE TASKS → (6) PREVIEW ENERGY / TIME / RISK → (7) EXECUTE & OBSERVE 3D → (8) SCAN / ANALYZE / TRANSMIT → (9) RESEARCH CREDITS & SCIENCE SCORE → (10) RETURN TO LANDER / RECONFIGURE (nếu có module đã mang theo) → (11) DEBRIEF / NEXT MISSION.
+(1) SELECT MISSION → (2) DESIGN ROVER & PAYLOAD → (3) PREFLIGHT CHECK → (4) DEPLOY (chuyển cảnh ngắn) → (5) PLANNING MODE: CHỌN WAYPOINTS & SCIENCE SITES → (6) PREVIEW PLANNED ENERGY / TIME / RISK → (7) START DRIVE: NGƯỜI CHƠI TỰ LÁI WASD THEO ĐƯỜNG CHỈ DẪN → (8) SCAN / ANALYZE / TRANSMIT / STOP TO RECHARGE → (9) SCIENCE SCORE & RESEARCH CREDITS → (10) QUAY VỀ LANDER, ĐỔI MODULE DỰ PHÒNG → (11) DEBRIEF / NEXT MISSION. Không có chế độ tự lái bắt buộc.
 
 Không có hệ thống chế tạo ISRU phức tạp, bán đá lấy tiền, nhặt 'cục năng lượng', thả kén tiếp tế từ quỹ đạo hay bay qua nhiều hành tinh. Thu thập mẫu đá là hoạt động khoa học; các địa hình và mission đều trên Sao Hỏa.
 
@@ -42,7 +44,7 @@ Kiểm tra tự động: mission requirements đạt chưa, ngân sách có vư�
 
 ### 3.4 Mars Operations — Bản đồ 3D
 
-Góc camera isometric/orthographic cố định, terrain low-poly; đồ họa có thể hiển thị bề mặt liên tục nhưng logic tính trên lưới/graph đơn giản. Rover có hướng quay, chuyển động mượt, bánh xe quay và hiệu ứng quét/khoan nhẹ. HUD gồm Battery (EU), thời gian mission, dữ liệu chưa truyền, Science Score, Research Credits và cấu hình đang dùng.
+Ở PLANNING MODE dùng camera isometric/orthographic xem sa bàn Mars low-poly và click chọn các waypoint; ở DRIVING MODE camera chase/follow theo rover, đường vạch thể hiện bằng vệt sáng/mốc chỉ dẫn 3D hoặc minimap, tuyệt đối không tự kéo xe chạy theo path. W đi tới, S lùi, A/D đổi hướng; có thể dùng Space để phanh, camera xoay nếu kịp. Di chuyển mượt, va chạm nhẹ, bánh xe quay. HUD theo thời gian thực: Battery EU, speed, mission time, planned route / distance-to-next-waypoint, actual drain, science data, Science Score, RC, current wheel. Toàn bộ chuỗi hiển thị cho người chơi phải là tiếng Anh.
 
 Thông tin chưa được scanner xác minh được hiển thị là 'chưa khảo sát' hoặc 'rủi ro ước tính', KHÔNG phải hệ thống biết chắc có hố cát lún bí mật. Mỗi môi trường có màu/vật liệu riêng, tooltip giải thích chi phí dự kiến và độ tin cậy thông tin.
 
@@ -50,15 +52,15 @@ Thông tin chưa được scanner xác minh được hiển thị là 'chưa kh�
 
 Tổng kết: các mục tiêu khoa học đã hoàn thành, dữ liệu truyền thành công, năng lượng đã dùng, thời gian còn lại, số lần gặp rủi ro, cấu hình rover, đường đã đi và lý do thắng/thua. Cho phép Retry với cấu hình khác hoặc mở mission tiếp theo.
 
-## 4. ĐIỀU KHIỂN: PLAN → EXECUTE → OBSERVE → REPLAN
+## 4. ĐIỀU KHIỂN: PLAN → DRIVE (WASD) → REPLAN
 
-Điều khiển chính thức: KHÔNG WASD; KHÔNG click là rover chạy ngay; KHÔNG phải từng ô đi một lượt như cờ. Người chơi click một hoặc vài waypoint trên bản đồ, thêm thao tác nghiên cứu, xem preview rồi nhấn EXECUTE. Xe tự di chuyển liên tục theo tuyến trong Three.js.
+CƠ CHẾ CHÍNH THỨC — PLAN & DRIVE, KHÔNG PHẢI AUTOPILOT: (A) Planning Mode: người chơi click map tạo waypoint và điểm nghiên cứu; path chỉ đường và game ước lượng năng lượng, thời gian, mức rủi ro. (B) Chọn START DRIVE; chuyển sang camera theo rover và kích hoạt điều khiển W/S tiến/lùi, A/D đánh lái. Người chơi PHẢI tự lái trên địa hình; không bấm Execute để xe tự chạy. (C) Người chơi có thể dừng/PAUSE hoặc trở về Planning để vạch lại đường. Đường hướng dẫn chỉ là gợi ý, không ép xe bám sát.
 
-PLANNING: click điểm đích/waypoint; có nút Undo/Clear; click Science Site để thêm SCAN hoặc ANALYZE; có thể thêm TRANSMIT khi đủ điều kiện. Bảng dự toán cho biết thời gian, điện và mức rủi ro. Với ô chưa được quét, dự toán là khoảng/ước tính thay vì số chính xác.
+PLANNING: click địa hình để thêm waypoint, click science site để chọn mục tiêu; Undo, Clear, Change Route; Preview theo cấu hình rover và đường dự kiến. Màn hình phải phân biệt Estimate với Actual: điện và thời gian trước khi lái chỉ là dự báo (nhất là đoạn chưa scanner), KHÔNG phải con số bảo đảm. Người chơi quyết định đi xuyên cát ngắn hay vòng trên đường cứng dài, rồi nhấn START DRIVE. Chế độ này không có xe tự chạy.
 
-EXECUTE: khóa chỉnh sửa hàng đợi trong lúc thực thi; mô phỏng lần lượt waypoint và hành động. Di chuyển, quét và truyền dữ liệu thay đổi chỉ số thật. Nếu gặp rủi ro vượt ngưỡng, rover tự dừng an toàn, báo nguyên nhân và trả người chơi về Planning để vẽ đường lại. Đây là điểm dừng logic, không phải sự kiện lựa chọn A/B/C.
+DRIVING: WASD điều khiển liên tục theo deltaTime với chuyển động arcade/kinematic đơn giản, gia tốc, giới hạn tốc độ, khả năng quay, ảnh hưởng bánh và địa hình; không dùng mô phỏng rigid-body phức tạp. Chỉ khi XE THỰC SỰ DI CHUYỂN mới trừ năng lượng di chuyển và cộng thời gian/quãng đường. Terrain sampling theo tọa độ thực của rover, không theo đường vạch sẵn; lái lệch tuyến vào cát hoặc đá nguy hiểm làm thay đổi điện, tốc độ, rủi ro. Nếu kẹt/hết pin/đụng ranh giới thì dừng an toàn, cho cảnh báo và cho phép replan, reset hoặc failure có giải thích. Không tự teleport khi đổi mode.
 
-4 hành động MVP: MOVE (đi tới waypoint), SCAN (kiểm tra vùng xung quanh), ANALYZE (nghiên cứu mẫu), TRANSMIT (gửi dữ liệu). RECHARGE là trạng thái 'dừng để sạc' của pin mặt trời, không cần thêm minigame. Không xây editor lệnh Forward/Turn kiểu lập trình.
+MODE & ACTIONS (MVP): PLANNING → START DRIVE (WASD) → PAUSE/REPLAN → RESUME. Trong Driving, người chơi có thể dừng tại science site để SCAN, ANALYZE, TRANSMIT; RECHARGE cần đứng yên và đủ sáng. Khi bấm vào ô nhập liệu/overlay, WASD không được kích hoạt; nhả phím hoặc mất focus phải ngừng ga an toàn. Đường waypoint chỉ để định hướng (indicator / minimap), KHÔNG là AI autopilot. Không làm tính năng click-to-move, chế độ lái tự động song song hay editor lệnh Forward/Turn.
 
 ## 5. MỘT BẢN ĐỒ SAO HỎA, NHIỀU MÔI TRƯỜNG
 
@@ -76,7 +78,7 @@ W2 — WIDE TRACTION WHEEL: nặng và tốn ngân sách hơn. Nền cứng 1,25
 
 W3 — REINFORCED WHEEL: chi phí cao, khối lượng lớn. Nền cứng 1,15×; cát mềm 1,30×; đá sắc 0,75×; dốc 1,00×. Bền khi qua vùng đá sắc/dốc, nhưng không phải lựa chọn tốt nhất cho cát.
 
-Công thức MVP: MOVE_ENERGY = BASE_DISTANCE_COST × TERRAIN_FACTOR × WHEEL_FACTOR × LOAD_FACTOR. BASE_DISTANCE_COST và các hệ số do game designer hiệu chỉnh, chưa phải tiêu hao thực của rover NASA. Khi thêm slope, chỉ áp dụng một hệ số dốc có dấu/giới hạn để tránh tính hai lần. Rủi ro kẹt và hao mòn phụ thuộc địa hình, cấu hình, đường đi; không đặt '0% kẹt' cho một loại bánh.
+Công thức tính di chuyển dự kiến cho mỗi đoạn: MOVE_ENERGY_ESTIMATE = BASE_DISTANCE_COST × TERRAIN_FACTOR × WHEEL_FACTOR × LOAD_FACTOR. Lái thực tế: tích lũy MOVEMENT_ENERGY theo quãng đường thực chạy qua mỗi loại địa hình, thời gian và cấu hình; KHÔNG tự trừ cả tuyến ngay khi Start Drive. Cả hai dùng chung hàm chi phí cơ bản; chênh lệch do người lái đổi tuyến/tốc độ/dừng. Tránh nhân đôi hệ số dốc; dùng deltaTime clamp, hạn chế phụ thuộc FPS. Các hệ số là GAME BALANCE, không phải số đo NASA. Rủi ro không bảo đảm 0% cho bất cứ bánh xe nào.
 
 Ví dụ trên cùng điểm đến: W1 có thể chọn đi vòng trên nền cứng; W2 có thể chấp nhận cắt qua vùng cát; W3 có thể vòng qua tuyến đá sắc. Cả ba chiến lược có cơ hội hoàn thành, nhưng khác nhau ở thời gian/điện/rủi ro. Thiết kế level không được ngầm chỉ có một đáp án đúng.
 
@@ -86,11 +88,11 @@ Ví dụ trên cùng điểm đến: W1 có thể chọn đi vòng trên nền c
 
 MVP chỉ có một hệ pin dự trữ dùng cho toàn bộ hành động và một cách nạp chính: solar charging khi có ánh sáng. Không có lựa chọn Solar vs MMRTG, không có trạm năng lượng có thể nhặt và không có 'đồi nắng +25 EU lập tức'. Trạng thái Battery có thể hiển thị 0–100 EU (đơn vị cân bằng game).
 
-Điện giảm theo MOVE, SCAN, ANALYZE, TRANSMIT. Muốn sạc, rover phải dừng ở khu vực nhận ánh sáng đủ tốt và hy sinh thời gian; khả năng nạp được tính theo thời gian dừng × hệ số ánh sáng/bụi. Vùng bóng tối hoặc bụi dày giảm sạc; đồi cao không tự động cho bonus nếu không có điều kiện chiếu sáng hợp lý.
+Pin giảm khi xe thực sự di chuyển (theo quãng đường/địa hình/cấu hình), khi SCAN, ANALYZE hoặc TRANSMIT. Đứng yên khi có ánh sáng tốt có thể sạc, nhưng tiêu tốn thời gian nhiệm vụ; không có ô 'năng lượng miễn phí'. Khu vực râm/bụi dày làm giảm tốc độ nạp. Đồng hồ và Battery phải cập nhật từ một nguồn state có thẩm quyền, tránh trừ pin cả trong renderer và engine.
 
 Ví dụ số mock để test (có thể hiệu chỉnh): Battery 100 EU; dự trữ an toàn 15 EU; di chuyển cơ bản 5 EU/đoạn chuẩn trước hệ số; SCAN 6 EU; ANALYZE 12 EU; TRANSMIT 6 EU; sạc +8 EU mỗi 10 phút dừng khi đủ sáng. Chỉ là GAME BALANCE; không gán giá trị thật cho NASA.
 
-UI preview cảnh báo khi tổng tuyến + thao tác vượt dung lượng pin, hoặc sau hành động dự kiến dưới 15 EU. Không nhất thiết cấm người chơi dùng hết điện: có thể cho phép quyết định rủi ro nhưng phải báo trước và có logic failure rõ.
+PLANNING PREVIEW hiển thị năng lượng và thời gian ƯỚC TÍNH nếu đi gần tuyến đã chọn, có cảnh báo khi dưới ngưỡng an toàn 15 EU. DRIVING HUD hiển thị tiêu hao THỰC TẾ khi xe lái, và có thể hiển thị remaining-route estimate dựa trên vị trí thật. Lái lệch tuyến làm dự báo thay đổi. Battery luôn clamp trong [0, max]; cạn điện phải có trạng thái hỏng/hết nhiệm vụ rõ ràng.
 
 ### 7.2 Terrain Scanner
 
@@ -110,7 +112,7 @@ Nếu mission tiếp theo cho thay loadout từ Trái Đất, có thể sử d�
 
 ## 9. CÁC MISSION DÙNG CHUNG BẢN ĐỒ
 
-MISSION 01 — FIRST SURVEY (tutorial): điểm khảo sát gần lander, chủ yếu hard plain xen một ít cát. Dạy Plan/Execute, scanner, truyền dữ liệu và xem pin. Hoàn thành khi thu và truyền dữ liệu của hai điểm khoa học.
+MISSION 01 — FIRST SURVEY (tutorial): khảo sát hai điểm khoa học gần lander, nền cứng xen cát. Dạy chuyển từ Plan sang Drive, WASD điều khiển, waypoint guidance, điều chỉnh đường khi lái, scanner, sạc và transmit. Game yêu cầu người chơi tự lái để tiếp cận điểm khảo sát.
 
 MISSION 02 — THE DUNE CROSSING (core demo): điểm nghiên cứu nằm sau một dải cát mềm; tồn tại tuyến xuyên cát ngắn và đường vòng nền cứng dài. Người chơi tự chọn bánh, scanner, đường đi và chiến lược sạc. Đây là mission thể hiện rõ trade-off và nên ưu tiên hoàn chỉnh.
 
@@ -128,35 +130,35 @@ Ví dụ: rover W1 đi vòng qua nền cứng vẫn có thể thắng; rover W2 
 
 ## 11. MVP CẦN LÀM VÀ CHỨC NĂNG CẮT BỎ
 
-P0 — BẮT BUỘC: một Mars map isometric low-poly có ít nhất 3 loại nền khác nhau; rover 3D và animation; 3 loại bánh với ma trận bù trừ; một Battery và solar recharge; Plan/Preview/Execute/Replan; 4 hành động MOVE/SCAN/ANALYZE/TRANSMIT; Mission Design có budget/mass, lander/garage dùng module dự phòng; 2 mission; Science Score/RC; Debrief; một luồng demo end-to-end.
+P0 — BẮT BUỘC: một Mars map low-poly có ít nhất 3 loại nền; rover 3D lái WASD thực, camera bám theo; 3 loại bánh có trade-off; một Battery và solar recharge; PLANNING click waypoint + Preview energy/time/risk; START DRIVE để người chơi TỰ lái theo vệt chỉ đường; PAUSE/REPLAN; tính chi phí theo đường chạy THỰC; SCAN/ANALYZE/TRANSMIT; Mission Design budget/mass, lander/garage module dự phòng; 2 mission; Science Score/RC; Debrief; chơi end-to-end. 100% PLAYER-FACING ENGLISH: nút, labels, keyboard hints, HUD, tutorial, error, success, telemetry logs, science facts, alt/aria. Tài liệu nội bộ có thể là tiếng Việt.
 
 P1 — NẾU CÒN THỜI GIAN: môi trường thứ tư/thứ năm, enhanced scanner và thay model scanner, mission 03, ảnh thumbnail mission, hiệu ứng bụi/đá, timeline hiển thị đẹp hơn. Luôn ưu tiên kết nối và test luồng trước khi mở rộng.
 
-OUT OF SCOPE: chọn tên lửa, bay quỹ đạo, tính Δv/hạ cánh vật lý; nhiều hành tinh; xe lái WASD/giữ chuột thời gian thực; hệ sản xuất ISRU/3D printing; mua thiết bị vật lý mới ở Sao Hỏa; orbital supply pods; nhiều kiểu ăng-ten với hệ thống quỹ đạo phức tạp; thế giới mở, mô phỏng lốp bằng rigid-body physics; random crisis không gắn với thiết kế.
+OUT OF SCOPE: tên lửa/quỹ đạo/Δv/hạ cánh vật lý; nhiều hành tinh; autopilot Plan & Execute (click rồi xe tự chạy); click-to-move; chuyển thủ công/tự động phức tạp; ISRU/3D printing; mua đồ vật lý mới ở Mars; orbital supply pods; nhiều ăng-ten; open-world khổng lồ; rigid-body physics xe; multiplayer; random crisis không gắn với thiết kế. WASD ĐƯỢC GIỮ LÀ ĐIỀU KHIỂN CHÍNH, nhưng không đòi mô phỏng vật lý lái xe nặng.
 
 ## 12. PHÂN CÔNG 5 THÀNH VIÊN / 4 LUỒNG
 
-Duy — UI/UX + Integrator (feat/ui): Mission Select, Hangar, HUD, route preview, Execute, garage/debrief, tích hợp state với scene và simulation; điều phối PR, demo và deploy.
+Duy — UI/UX + Integrator (feat/ui): thiết kế Mission Select, Hangar, Planning UI (waypoints, Preview, Start Drive), Driving HUD (WASD instructions, actual power/time), Pause/Replan, garage/debrief, tất cả player-facing copy bằng tiếng Anh. Duy điều phối event input/focus, tích hợp state giữa scene và simulation, PR, test và deploy.
 
-Bảo — Three.js (feat/scene): Mars terrain isometric/orthographic, 3 môi trường rõ rệt, low-poly rover có thay bánh trực quan, click waypoint, chuyển động mượt, hiệu ứng scan/analysis nhẹ.
+Bảo — Three.js (feat/scene): map Mars low-poly với ba nền rõ rệt, rover 3D đổi bánh, hai camera planning isometric + driving chase, vạch waypoint và HUD indicator, điều khiển WASD/đánh lái, chuyển động mượt, feedback terrain và scan. Reuse hiện trạng MarsOpenWorld nếu hợp lý, tránh viết lại toàn bộ. Không tự tính/trừ Battery trong scene.
 
-Hải — Simulation (feat/simulation): game state, action queue, MOVE cost, thời gian, pin/sạc, trade-offs bánh/địa hình, scanner uncertainty, mission outcome, deterministic tests. Không sửa src/data hoặc src/content nếu chưa thống nhất.
+Hải — Simulation (feat/simulation): một nguồn state thật cho battery/time/position, hàm route preview và drive-step/travel cost dựa trên tọa độ thật (deltaTime), hệ số bánh/địa hình, solar, scanner uncertainty, science/credits, mission outcome và deterministic tests. Xóa/đánh dấu legacy tile-turn/Math.random nếu ảnh hưởng hệ thống mới; không chỉnh src/data hay src/content khi chưa thống nhất.
 
-Sơn — NASA Science/Data (feat/content-data; src/data/ + docs/science/): rà soát nguồn NASA, điều kiện rover, đơn vị/giả định, ma trận terrain và các con số game hóa; phân biệt science source vs balance mock; giải thích giới hạn mô hình cho giám khảo.
+Sơn — NASA Science/Data (feat/content-data; src/data/ + docs/science/): nguồn NASA, định nghĩa terrain/mass/energy/wheel/solar và giới hạn dữ liệu; nêu rõ WASD là abstraction điều khiển để học chiến thuật, không mô phỏng điều khiển thời gian thực từ Trái Đất. Kiểm tra nhãn số liệu GAME BALANCE và các dữ liệu được dùng thật; không đụng src/sim.
 
-Cường — Game Design/Content (cùng feat/content-data; src/content/ + docs/design/): mục tiêu Mission 01–03, bố cục sa bàn, tutorial, mô tả research site, scoring/credits, gameplay test, demo/pitch. Sơn và Cường không sửa cùng file dù dùng chung nhánh.
+Cường — Game Design/Content (cùng feat/content-data; src/content/ + docs/design/): Mission 01–03 với nhiều đường và chiến thuật, tutorial tiếng Anh cho Planning/Start Drive/WASD, sci-site text, labels/scoring/credits, kịch bản pitch và asset checklist; chỉ dùng nội dung tiếng Anh trong game.
 
-Giao diện giữa các luồng: src/types/game.ts làm contract chung. Scene nhận MissionState và callback waypoint; Simulation nhận hành động & dữ liệu terrain/module; UI chỉ hiển thị và gọi API. Giữ PR nhỏ, merge sớm, kiểm tra npm run build; không để logic năng lượng nằm rải rác trong các React component.
+Shared contracts: src/types/game.ts là chỗ thống nhất định nghĩa PlanRoute, DrivingInput (forward/back/left/right), RoverPose (x,z,heading,speed), TerrainSample, TravelTelemetry, energy/time budget, result/outcome. Scene nhận state và phát input/telemetry sự kiện, simulation là nguồn duy nhất tính chi phí/time/mission state, UI chỉ hiển thị/gửi command. Duy chốt hợp đồng với Bảo và Hải trước khi sửa code phụ thuộc. Không sửa đè công việc mới của nhau; test npm run build + thao tác thực tế bằng keyboard.
 
 ## 13. BÀI DEMO CHO GIÁM KHẢO (3–5 PHÚT)
 
-(0:00) Giới thiệu mục tiêu Mission 02. (0:20) Chọn bánh nhẹ: tiết kiệm khối lượng/điện trên nền cứng. (0:50) Bản đồ chỉ ra đường xuyên cát ngắn hoặc đường vòng dài. (1:20) Thử Preview thấy nguy cơ hao pin nếu xuyên cát. (1:40) Scan, điều chỉnh waypoint để đi vòng hoặc đổi chiến lược. (2:10) Execute, rover thực sự chạy qua địa hình và pin/time thay đổi. (3:10) Analyze mẫu đá, Transmit nhận Science Score và RC. (3:40) Debrief giải thích đánh đổi; chạy lại ngắn bằng bánh tăng bám cho tuyến khác.
+(0:00) Mission 02 Dune Crossing. (0:20) Chọn rover và bánh nhẹ. (0:50) Planning: click vạch tuyến đường vòng hoặc xuyên cát, xem estimate điện/thời gian/rủi ro. (1:20) Nhấn START DRIVE. (1:30–2:30) Người chơi lái W/S/A/D thật theo các waypoint; thử lệch vào cát để thấy tốc độ và battery thay đổi. (2:30) Dừng tại site, SCAN/ANALYZE rồi TRANSMIT để nhận Science Score và RC. (3:10) Mission Report so sánh planned vs actual energy/time; (3:40) thử bánh rộng với tuyến cát để cho thấy chiến lược thứ hai. 100% chữ và voice/text trên game bằng tiếng Anh.
 
 Giá trị giáo dục cần chứng minh: thiết kế vật lý ảnh hưởng hiệu quả chuyến đi; không chỉ 'nhấn đúng đáp án' mà người chơi phải dự toán, thích nghi, kiểm nghiệm quyết định và học lý do tại sao nhiệm vụ thành công hay thất bại.
 
 ## 14. NGUYÊN TẮC TÍNH KHOA HỌC VÀ NGUỒN THAM KHẢO
 
-(A) Tất cả EU/ô, RC, hệ số bánh/địa hình, tỷ lệ rủi ro và ngân sách trong bản prototype là GIẢ ĐỊNH GAMEPLAY, không tự nhận là thông số NASA. (B) Chỉ ghi 'NASA data' khi có tên nguồn, đơn vị, ý nghĩa và cách được sử dụng thực sự trong một phép tính. (C) Không khẳng định Terrain Scanner đọc chính xác 100% địa hình. (D) Không tuyên bố hoạt động thay bánh tại lander hay dùng RC là quy trình NASA ngoài thực tế.
+(A) EU, RC, wheel/terrain factors, risk và ngân sách prototype là GAME BALANCE, không tự nhận số NASA. (B) Chỉ ghi 'NASA data' khi có URL, đơn vị, vai trò thực trong phép tính. (C) Terrain Scanner không biết chắc 100% địa hình. (D) Thay bánh tại lander và RC là giả lập phục vụ game. (E) WASD/chase camera là cách điều khiển TRỰC TIẾP CHO NGƯỜI CHƠI trong mô phỏng giáo dục, KHÔNG phải NASA lái rover từ Trái Đất theo thời gian thực; rover thực chịu trễ liên lạc và thường lập chuỗi lệnh tự hành. Mọi lời giải thích cho người chơi được viết bằng tiếng Anh.
 
 Nguồn đọc và xác minh: NASA Space Apps 2026 — https://www.spaceappschallenge.org/2026/ ; NASA Perseverance Rover Components (NavCam, HazCam, hệ thống) — https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/ ; NASA Curiosity vs Perseverance wheels — https://science.nasa.gov/resource/curiositys-and-perseverances-wheels/ ; JPL Perseverance rover engineering — https://www.jpl.nasa.gov/news/press_kits/mars_2020/launch/mission/spacecraft/perseverance_rover/ ; NASA Opportunity mission (pin mặt trời và bão bụi) — https://science.nasa.gov/mission/mer-opportunity/ .
 
@@ -164,7 +166,7 @@ Giới hạn cần nói thẳng: đây là educational mission trade-off simulat
 
 ## 15. ACCEPTANCE CHECKLIST
 
-[ ] Mission 01 và 02 chơi end-to-end trong trình duyệt; [ ] có ít nhất 2 tuyến hợp lệ cho Mission 02; [ ] cùng điều kiện đầu vào, engine cho kết quả lặp lại; [ ] thay bánh làm thay đổi kết quả tính thực sự; [ ] preview và kết quả Execute khớp theo quy tắc đã định; [ ] battery không vượt giới hạn và solar recharge chỉ khi đủ nắng, có tốn thời gian; [ ] scanner mở thông tin, không 'hack' biết chắc địa hình; [ ] RC nhận khi dữ liệu được truyền thành công; [ ] phụ kiện dự phòng tính vào payload mass; [ ] có thể thua, có thể chơi lại; [ ] có phần giải thích khoa học, link nguồn và nhãn số liệu giả lập; [ ] npm run build PASS, có link demo và video ngắn.
+[ ] Mission 01 & 02 chơi end-to-end; [ ] có ít nhất 2 tuyến viable tới một site; [ ] click waypoint → preview → START DRIVE → tự lái WASD và đường được vẽ còn hiển thị; [ ] xe KHÔNG tự chạy nếu người chơi không nhấn W/S; [ ] lái chệch tuyến thay đổi actual time/energy/risk; [ ] cùng đường lái và deltaTime đã định cho kết quả tái lập; [ ] 3 loại bánh thay đổi kết quả thật; [ ] pin/time không bị trừ hai lần trong scene + engine; [ ] solar sạc khi đứng yên & đủ sáng; [ ] Terrain Scanner không biết 100%; [ ] truyền data một lần mới nhận RC; [ ] tổng mass tính phụ kiện dự phòng; [ ] Full/Partial/Failure + Retry; [ ] 100% game UI/tutorial/HUD/errors/logs/aria bằng tiếng Anh; [ ] npm run build PASS, keyboard/browser smoke test và ảnh demo.
 
 Ghi chú: concept đã được rút gọn có chủ đích để hoàn thành một trò chơi tương tác thực sự trong hackathon. Không đưa lại các phần tên lửa, Δv, chế tạo ISRU hay hành tinh thứ hai vào phạm vi MVP khi chưa hoàn thành luồng cốt lõi.
 

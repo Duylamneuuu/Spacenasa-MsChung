@@ -1,45 +1,30 @@
-# APOGEE — Content / mission design / NASA science handoff
+# APOGEE — Science & English-language mission content (Plan & Drive)
 
-**Fourth workstream:** Sơn (NASA data) + Cường (mission design), **joint branch feat/content-data**. Never overwrite one another's folders.
+> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
 
-## Sơn — source-backed science and static numeric inputs
 
-Own **src/data/** and **docs/science/**. Supply:
-- One shared Mars environment grid/graph: terrain categories **hard plain, soft sand, sharp rock** (P0) and **slope, shadow canyon** (P1), with elevation/illumination attributes if used.
-- Three wheel records **light / wide / reinforced**, with mass and budget costs, environment coefficients, hazard factors. Every coefficient must say **MOCK GAME BALANCE** until scientifically tested; no fabricated NASA measurements.
-- Mission and preflight constraints: budget, payload cap including rover+lander+installed+spares+support, solar/battery rules, science instrument and sensor metadata.
-- A **sources table** in docs/science/SOURCES.md: parameter, NASA/partner URL, access date, physical units, scientific meaning, interpretation, limitation and code location in which it actually changes a rule.
-- Review whether nav cameras vs geological GPR radar are described accurately; do not claim a scanner detects all hidden caking sand or geological targets with certainty.
-- Explain why the prototype is educational, not aerospace-flight validated.
+**Shared branch:** feat/content-data. **Distinct owners:** Sơn handles src/data/ and docs/science/; Cường handles src/content/, docs/design/ and public/assets/ui/.
 
-**Expected proposed files:** src/data/terrain.ts, src/data/wheels.ts, src/data/mission-constraints.ts, docs/science/SOURCES.md. Coordinates and schemas require agreement with Duy + Hải first.
+## Sơn / science and data
+- Terrain physics categories for one Mars world: hard plain, soft sand, sharp rocks (P0); slope/shadow P1.
+- Wheel records: light, wide traction, reinforced; budget/mass, terrain efficiency, hazard/traction factors. Label any guessed factors **GAME BALANCE — NOT NASA DATA**.
+- Actual rover speed/terrain/electricity integration assumptions, solar charge illumination, time, scanner uncertainty.
+- Provenance in docs/science/SOURCES.md: NASA/JPL URL, date, physical units, assumptions, exact code usage. A real sourced value must genuinely influence a rule, rather than being merely cited.
+- Explain operator-driven WASD as educational abstraction; NASA Mars rovers aren't driven like live video games from Earth.
 
-## Cường — gameplay, missions, UX copy and presentation
+## Cường / player-facing content
+**100% ENGLISH** mission names, objectives, tutorials, scanner readouts, prompts, help text, science facts, debrief and visual asset captions. Audit all dynamic strings and logs, not only React JSX.
 
-Own **src/content/**, **docs/design/** and **public/assets/ui/**.
-- **Mission 01 — First Survey:** nearby science sites, introduce route planning, scanning, transmit and battery.
-- **Mission 02 — The Dune Crossing:** a science site beyond a soft-sand belt; alternate shorter sandy route and longer hard-ground route, with multiple ways to win.
-- **Mission 03 — Into the Crater (P1 only):** slope/sharp-rock/shadow trade-offs.
-- Define site coordinates and stable IDs, goal conditions, reward tiers, tutorials, success/failure copy and at least two example viable rover strategies.
-- Build an asset list focusing on rover body + **3 wheel variants**, primitive rocks, terrain surfaces, scanner FX and lander garage; use original or properly licensed assets.
-- 3–5 minute demo script proving a route/loadout trade-off. Do not design scripted choose-A-or-B crises as the primary gameplay.
+- **First Survey (P0)**: interactive tutorial to choose waypoints, Start Drive, W/S/A/D, park, scanner, analyze and transmit.
+- **The Dune Crossing (P0 showcase)**: one map, alternate short soft-sand route and longer hard/rock detour. Create at least two winning strategies across wheel builds. Explain plan-estimate-vs-actual difference.
+- **Into the Crater (P1)**: slope, rugged rock and shadow gameplay.
+- Stable mission IDs, site radius and coordinates, rewards once per transmitted unique discovery, science score and fictional RC copy.
+- One rover model with three visible wheel variants, scan FX, lander/garage and low-poly Mars world. Provide original/licensed asset list.
 
-**Expected proposed files:** src/content/missions.ts, src/content/sites.ts, src/content/copy.ts, docs/design/FLOW.md, docs/design/ASSET_LIST.md.
+## Shared integration handoff
+- Sơn and Cường agree site IDs/terrain schema with Duy/Hải, no duplicate content logic.
+- The planner estimates based on map/path data; actual WASD travel uses current x/z/terrain in the engine. No invisible forced route.
+- Solar only charges while stopped under enough light; science interaction only near correct site.
+- No rockets, orbital supply, ISRU crafting or multiple planets in MVP.
 
-## What to share with Hải and Duy first
-
-1. Mission IDs and target-science-site IDs that are **the same in content and data**.
-2. 3 terrain categories, a tiny test map with **two possible routes** to one sample, 3 wheel records and explicit solar assumptions.
-3. One science reward definition: data acquired by ANALYZE, delivered by TRANSMIT, RC granted once to avoid farming.
-4. One design example where light wheels choose detour and wide wheels choose sandy shortcut.
-
-## Scientific/gameplay boundaries
-
-- **Research Credits are fictional progression**, not NASA paying for rocks.
-- No ISRU crafting, orbital supply pods, or multiple planetary bodies in MVP.
-- Ground-penetrating radar (e.g. RIMFAX) is scientific subsurface sounding, not the default navigation hazard scanner.
-- Solar charges with illumination and time; no magic recharging on a special hill tile.
-- Spare payload contributes to the spacecraft's total deployed mass; only loaded inventory can be swapped at lander.
-- If actual NASA values have not yet been verified, record them as TODO and label prototype values MOCK, rather than inventing a citation.
-
-References: [full GDD](APOGEE_GDD.md), [interfaces](INTERFACES.md), [implementation handoff](IMPLEMENTATION_HANDOFF.md).
+[Master GDD](APOGEE_GDD.md) · [Interfaces](INTERFACES.md).

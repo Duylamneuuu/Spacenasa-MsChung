@@ -1,3 +1,7 @@
+> **HISTORICAL / SUPERSEDED HANDOFF (14 Nov 2026):** This teammate-authored Gemini note describes an earlier Mission Control / rockets / delta-v design and an older scaffold state. **DO NOT use it to implement APOGEE.** The approved current model is **Plan & Drive**: click a route in Planning Mode, then manually drive W/S/A/D while following a visual guide. Player-facing game UI and all telemetry/logs must be 100% English. Read [GDD v2](APOGEE_GDD.md), [interfaces v2](INTERFACES.md), and [Work master prompt](WORK_MASTER_PROMPT.md). Original text below is preserved for historical context; Bảo's work must not be overwritten.
+
+---
+
 # BẢN BÀN GIAO TOÀN DIỆN DỰ ÁN APOGEE (NASA SPACE APPS CHALLENGE 2026)
 > **Dành cho:** Google Gemini AI / AI Assistant  
 > **Mục đích:** Cung cấp đầy đủ 100% ngữ cảnh, mã nguồn, phân công nhân sự và trạng thái hiện tại để AI tiếp quản và hỗ trợ tức thì không bị đứt đoạn.  
