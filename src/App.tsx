@@ -6,6 +6,8 @@ import type { Cell, ControlMode, DrivingInput, Loadout, MissionId, MissionState,
 import { Debrief, Hangar, MissionSelect, Preflight, StageBar } from './ui/ExpeditionUI';
 import { Operations } from './ui/ExpeditionOperations';
 import { TitleScreen } from './ui/TitleScreen';
+import { useI18n } from './i18n';
+import { missionName } from './ui/ExpeditionUI';
 
 const HangarScene = lazy(() => import('./scene/ExpeditionScene').then(m => ({ default: m.HangarScene })));
 type Stage = 'title' | 'select' | 'hangar' | 'preflight' | 'deploy' | 'operations' | 'report';
@@ -27,6 +29,7 @@ export default function App() {
   const busy = useRef(false);
   const main = useRef<HTMLElement>(null);
   const mission = MISSIONS[missionId];
+  const { t } = useI18n();
 
   useEffect(() => { main.current?.focus({ preventScroll: true }); window.scrollTo(0, 0); }, [stage]);
   function commit(next: MissionState) { authoritative.current = next; setState(next); }
@@ -151,9 +154,9 @@ export default function App() {
       {stage === 'title' && <TitleScreen onStart={() => setStage('select')} />}
       {stage === 'select' && <MissionSelect onSelect={select} onBack={() => setStage('title')} />}
       {stage === 'hangar' && <Hangar mission={mission} loadout={loadout} onChange={setLoadout} onBack={() => setStage('select')} onNext={() => setStage('preflight')}
-        scene={<Suspense fallback={<div className="map-fallback">Loading rover…</div>}><HangarScene loadout={loadout} /></Suspense>} />}
+        scene={<Suspense fallback={null}><HangarScene loadout={loadout} /></Suspense>} />}
       {stage === 'preflight' && <Preflight mission={mission} loadout={loadout} onBack={() => setStage('hangar')} deploy={deploy} />}
-      {stage === 'deploy' && <div className="dp-root" role="status"><div className="dp-copy"><span>Entry · descent · landing</span><b>{mission.name}</b><i /></div></div>}
+      {stage === 'deploy' && <div className="dp-root" role="status"><div className="dp-copy"><span>{t('deploy.kicker')}</span><b>{missionName(t, mission.id)}</b><i /></div></div>}
       {stage === 'operations' && <Operations state={state} route={route} setRoute={setRoute} mode={mode} setMode={changeMode} act={act}
         effect={effect} swap={swap} report={report} exit={() => { changeMode('planning'); setStage('select'); }} log={log} />}
       {stage === 'report' && <Debrief state={state} retry={() => setStage('hangar')} home={() => setStage('select')} next={() => select('dune-crossing')} />}

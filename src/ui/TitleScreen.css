@@ -14,7 +14,7 @@
 .ts-bars i:first-child { top: 0; }
 .ts-bars i:last-child { bottom: 0; }
 .ts-top, .ts-foot { position: absolute; left: 48px; right: 48px; z-index: 3; display: flex; justify-content: space-between; font: 600 .66rem var(--font-display, monospace); letter-spacing: .36em; text-transform: uppercase; color: rgba(243,233,218,.5); }
-.ts-top { top: calc(7vh - 26px); }
+.ts-top { top: calc(7vh - 34px); align-items: center; }
 .ts-foot { bottom: calc(7vh - 26px); justify-content: flex-start; gap: 40px; }
 .ts-copy { position: absolute; z-index: 4; left: clamp(28px, 7vw, 120px); top: 50%; transform: translateY(-50%); max-width: 560px; animation: ts-in .8s ease-out; }
 .ts-kicker { margin: 0 0 16px; font: 600 .74rem var(--font-display, monospace); letter-spacing: .4em; text-transform: uppercase; color: #ff9f4a; }

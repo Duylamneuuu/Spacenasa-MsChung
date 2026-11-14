@@ -1,9 +1,12 @@
-import { Component, lazy, memo, Suspense, useEffect, useMemo, useState } from 'react';
+import { Component, lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { DUNE_NORTH, MISSIONS, SITES } from '../content/expedition';
-import { CAPACITY, cells, HEIGHT, inMap, key, MODULES, RESERVE, same, SWAP_CREDITS, SWAP_MINUTES, TERRAIN, terrainAt, TILE_SIZE, WIDTH } from '../data/expedition';
+import { CAPACITY, cells, HEIGHT, inMap, key, RESERVE, same, SWAP_CREDITS, SWAP_MINUTES, TERRAIN, terrainAt, TILE_SIZE, WIDTH } from '../data/expedition';
 import { garageStatus, previewRoute, siteAt, sunlight } from '../sim/expedition';
+import { useI18n } from '../i18n';
+import type { Key } from '../i18n';
 import type { Cell, ControlMode, MissionState, ModuleId, PlanPreview, SiteId, StationaryAction, TerrainKind } from '../types/expedition';
+import { LangSwitch, missionName, modLabel, modName, siteName, terrainName } from './ExpeditionUI';
 import './hud.css';
 
 const ExpeditionScene = lazy(() => import('../scene/ExpeditionScene').then(({ ExpeditionScene }) => ({ default: ExpeditionScene })));
@@ -13,18 +16,16 @@ type OperationsProps = {
   act: (a: StationaryAction) => void; effect: StationaryAction['type'] | null; swap: (id: ModuleId) => void; report: () => void; exit: () => void;
   log: readonly string[];
 };
+type T = (k: Key, v?: Record<string, string | number>) => string;
 
-const SITE_NAME = Object.fromEntries((Object.keys(SITES) as SiteId[]).map(id => [id, SITES[id].name])) as Record<SiteId, string>;
-const TERRAIN_NAME: Record<TerrainKind, string> = { hard: 'Firm ground', sand: 'Soft sand', rock: 'Sharp rock' };
-const EFFECT_NAME = { scan: 'Scanning terrain', analyze: 'Analyzing sample', transmit: 'Transmitting data', recharge: 'Charging battery' } as const;
 const RISK_COLOR = { low: '#9ff5c8', medium: '#ffd27a', high: '#ff6b5b' };
 const distance = (a: Cell, b: Cell) => Math.hypot(a.x - b.x, a.z - b.z);
 const num = (n: number, d = 1) => n.toFixed(d);
 const range = ([a, b]: PlanPreview['energy']) => num(a, 0) === num(b, 0) ? num(a, 0) : num(a, 0) + '–' + num(b, 0);
 const statusAt = (state: MissionState, id: SiteId) => state.delivered.some(s => s.site === id) ? 'done' : state.pending.some(s => s.site === id) ? 'stored' : 'open';
-const nameAt = (cell: Cell, start: Cell) => {
+const nameAt = (t: T, cell: Cell, start: Cell) => {
   const id = (Object.keys(SITES) as SiteId[]).find(id => same(SITES[id].cell, cell));
-  return id ? SITE_NAME[id] : same(cell, start) ? 'Lander' : 'Waypoint';
+  return id ? siteName(t, id) : same(cell, start) ? t('hud.lander') : t('hud.waypoint');
 };
 
 const MapTerrain = memo(function MapTerrain() {
@@ -33,6 +34,7 @@ const MapTerrain = memo(function MapTerrain() {
 });
 
 function TacticalMap({ state, preview, route, onPick, compact = false }: { state: MissionState; preview: PlanPreview; route: readonly Cell[]; onPick?: (cell: Cell) => void; compact?: boolean }) {
+  const { t } = useI18n();
   const mission = MISSIONS[state.mission];
   const [cursor, setCursor] = useState<Cell>(mission.start);
   const [focus, setFocus] = useState(false);
@@ -48,7 +50,7 @@ function TacticalMap({ state, preview, route, onPick, compact = false }: { state
   }
   return <svg className={compact ? 'hud-minimap-svg' : 'hud-tactical-svg'} viewBox={'-0.2 -0.2 ' + (WIDTH + .4) + ' ' + (HEIGHT + .4)}
     role={onPick ? 'application' : 'img'} tabIndex={onPick ? 0 : undefined} onKeyDown={move} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-    aria-label={onPick ? 'Tactical map. Arrow keys move the cursor; Enter adds a waypoint.' : 'Minimap'}>
+    aria-label={t('map.title')}>
     <MapTerrain />
     <g pointerEvents="none">
       {state.trace.length > 1 && <polyline points={state.trace.map(c => (c.x + .5) + ',' + (c.z + .5)).join(' ')} fill="none" stroke="#f3e9da" strokeWidth={.09} opacity={.6} strokeLinecap="round" strokeLinejoin="round" />}
@@ -70,7 +72,7 @@ function TacticalMap({ state, preview, route, onPick, compact = false }: { state
       {onPick && focus && <rect x={cursor.x + .05} y={cursor.z + .05} width={.9} height={.9} fill="none" stroke="#fff5db" strokeWidth={.08} />}
     </g>
     {onPick && <g>{cells.map(c => <rect key={key(c)} x={c.x} y={c.z} width={1} height={1} fill="transparent" style={{ cursor: 'crosshair' }} onClick={() => { setCursor(c); onPick(c); }}>
-      <title>{nameAt(c, mission.start)} · {TERRAIN_NAME[terrainAt(c)]}</title></rect>)}</g>}
+      <title>{nameAt(t, c, mission.start)} · {terrainName(t, terrainAt(c))}</title></rect>)}</g>}
   </svg>;
 }
 
@@ -80,40 +82,69 @@ class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-function guidance(state: MissionState, target: Cell) {
-  const heading = Math.atan2(target.x - state.position.x, target.z - state.position.z);
-  const delta = heading - state.pose.heading;
-  const turn = Math.atan2(Math.sin(delta), Math.cos(delta)) * 180 / Math.PI;
-  const meters = distance(state.position, target) * TILE_SIZE;
-  return { turn, meters };
-}
-
-function Gauge({ label, value, max, unit, warn, tone }: { label: string; value: number; max: number; unit: string; warn?: boolean; tone?: string }) {
+function Gauge({ label, value, max, unit, warn }: { label: string; value: number; max: number; unit: string; warn?: boolean }) {
   const p = Math.max(0, Math.min(1, value / max));
   return <div className={'hud-gauge' + (warn ? ' warn' : '')}>
-    <div className="hud-gauge-head"><span>{label}</span><b style={tone ? { color: tone } : undefined}>{num(value, value >= 100 ? 0 : 1)}<small>{unit}</small></b></div>
+    <div className="hud-gauge-head"><span>{label}</span><b>{num(value, value >= 100 ? 0 : 1)}<small>{unit}</small></b></div>
     <div className="hud-gauge-bar"><i style={{ width: p * 100 + '%' }} /></div>
   </div>;
 }
 
-function hint(state: MissionState, mode: ControlMode, route: Cell[], nearby: SiteId | undefined): [string, string] {
+/* ---------- Guided tutorial ----------
+   Each step is derived from game state, so it can never get out of sync:
+   it advances only when the player has actually done the thing it asks for. */
+type Target = 'presets' | 'estimate' | 'start' | 'compass' | 'brake' | 'analyze' | 'transmit' | 'recharge' | 'resume' | 'report' | null;
+type Step = { id: string; phase: 0 | 1 | 2 | 3 | 4; title: Key; body: Key; target: Target; keys?: string[]; ack?: boolean };
+const PHASES: Key[] = ['tour.phase.plan', 'tour.phase.drive', 'tour.phase.study', 'tour.phase.send', 'tour.phase.done'];
+
+function tourStep(state: MissionState, mode: ControlMode, route: Cell[], acked: Set<string>, nearby: SiteId | undefined): Step {
   const mission = MISSIONS[state.mission];
-  if (state.outcome) return ['Operations ended', 'Open the mission report to review your run.'];
-  if (mission.targets.every(id => statusAt(state, id) === 'done')) return ['Survey complete', 'All science is home. Open the mission report.'];
-  if (state.pending.length && Math.abs(state.pose.speed) === 0) return ['Send the data', 'Press T to transmit. Science and Research Credits arrive on downlink.'];
-  if (nearby && statusAt(state, nearby) === 'open') return ['Sample in range', Math.abs(state.pose.speed) > 0 ? 'Brake with Space, then analyze.' : 'Press F to analyze. Scan first (Q) to read the ground.'];
-  if (state.battery <= RESERVE) return ['Low power', 'Stop in sunlight and press R to recharge.'];
-  if (mode === 'driving') return ['Manual drive', 'W/S throttle · A/D steer · Space brake. The route is a guide only.'];
-  if (mode === 'paused') return ['Paused', 'Resume driving or replan from your current position.'];
-  if (route.length) return ['Route plotted', 'Check the estimate, then press Start drive.'];
-  return ['Plan your route', 'Click the terrain to drop waypoints, or pick a suggested route.'];
+  const dune = state.mission === 'dune-crossing';
+  const open = mission.targets.filter(id => statusAt(state, id) === 'open');
+  const speed = Math.abs(state.pose.speed);
+  if (mission.targets.every(id => statusAt(state, id) === 'done') || state.outcome) return { id: 'done', phase: 4, title: 'tour.done.t', body: 'tour.done.b', target: 'report' };
+  if (!acked.has('intro')) return { id: 'intro', phase: 0, title: 'tour.intro.t', body: dune ? 'tour.introDune.b' : 'tour.intro.b', target: null, ack: true };
+  if (state.pending.length) return speed > 0
+    ? { id: 'brake', phase: 3, title: 'tour.brake.t', body: 'tour.brake.b', target: 'brake', keys: ['Space'] }
+    : { id: 'send', phase: 3, title: 'tour.send.t', body: 'tour.send.b', target: 'transmit', keys: ['T'] };
+  if (nearby && statusAt(state, nearby) === 'open') return speed > 0
+    ? { id: 'brake', phase: 2, title: 'tour.brake.t', body: 'tour.brake.b', target: 'brake', keys: ['Space'] }
+    : { id: 'analyze', phase: 2, title: 'tour.analyze.t', body: 'tour.analyze.b', target: 'analyze', keys: ['F'] };
+  if (state.battery <= RESERVE + 5 && mode !== 'planning') return { id: 'power', phase: 1, title: 'tour.power.t', body: 'tour.power.b', target: 'recharge', keys: ['R'] };
+  if (mode === 'planning') {
+    if (!route.length) return state.delivered.length
+      ? { id: 'plan2', phase: 0, title: 'tour.plan2.t', body: 'tour.plan2.b', target: 'start' }
+      : { id: 'plan', phase: 0, title: 'tour.plan.t', body: dune ? 'tour.planDune.b' : 'tour.plan.b', target: 'presets' };
+    if (!acked.has('estimate')) return { id: 'estimate', phase: 0, title: 'tour.est.t', body: 'tour.est.b', target: 'estimate', ack: true };
+    return { id: 'start', phase: 0, title: 'tour.start.t', body: 'tour.start.b', target: 'start', keys: ['Enter'] };
+  }
+  if (mode === 'paused') return { id: 'paused', phase: 1, title: 'tour.paused.t', body: 'tour.paused.b', target: 'resume', keys: ['Enter'] };
+  if (state.delivered.length && open.length) return { id: 'next', phase: 1, title: 'tour.next.t', body: 'tour.next.b', target: 'compass', keys: ['W', 'A', 'D'] };
+  return { id: 'drive', phase: 1, title: 'tour.drive.t', body: 'tour.drive.b', target: 'compass', keys: ['W', 'A', 'S', 'D'] };
+}
+
+function Tour({ step, onAck, onSkip }: { step: Step; onAck: () => void; onSkip: () => void }) {
+  const { t } = useI18n();
+  return <aside className={'tour tour-at-' + (step.target ?? 'center')} role="status" aria-live="polite" key={step.id}>
+    <ol className="tour-phases" aria-hidden="true">{PHASES.map((p, i) => <li key={p} className={i < step.phase ? 'past' : i === step.phase ? 'now' : ''}><i />{t(p)}</li>)}</ol>
+    <h3>{t(step.title)}</h3>
+    <p>{t(step.body)}</p>
+    {step.keys && <div className="tour-keys">{step.keys.map(k => <kbd key={k}>{k}</kbd>)}</div>}
+    <div className="tour-foot">
+      <button className="tour-skip" onClick={onSkip}>{t('tour.skip')}</button>
+      {step.ack && <button className="hud-btn primary" onClick={onAck} autoFocus>{step.id === 'intro' ? t('tour.next') : t('tour.ok')}</button>}
+    </div>
+  </aside>;
 }
 
 export function Operations({ state, route, setRoute, mode, setMode, act, effect, swap, report, exit, log }: OperationsProps) {
+  const { t, m } = useI18n();
   const mission = MISSIONS[state.mission];
   const [tactical, setTactical] = useState(false);
   const [garage, setGarage] = useState(false);
   const [visited, setVisited] = useState(0);
+  const [guide, setGuide] = useState(() => { try { return localStorage.getItem('apogee-tour-off-' + state.mission) !== '1'; } catch { return true; } });
+  const [acked, setAcked] = useState<Set<string>>(() => new Set());
   const remaining = useMemo(() => route.slice(visited), [route, visited]);
   const preview = previewRoute(state, remaining);
   useEffect(() => { setVisited(0); }, [route]);
@@ -130,146 +161,169 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
   const light = sunlight(state.position, state.elapsed);
   const timeLeft = Math.max(0, mission.limit - state.elapsed);
   const terrain = terrainAt({ x: Math.round(state.position.x), z: Math.round(state.position.z) });
-  const next = remaining[0];
-  const guide = next && guidance(state, next);
+  const nextOpen = mission.targets.find(id => statusAt(state, id) === 'open');
+  const aim = remaining[0] ?? (nextOpen ? SITES[nextOpen].cell : undefined);
+  const heading = aim && Math.atan2(aim.x - state.position.x, aim.z - state.position.z);
+  const turn = aim ? Math.atan2(Math.sin(heading! - state.pose.heading), Math.cos(heading! - state.pose.heading)) * 180 / Math.PI : 0;
+  const meters = aim ? distance(state.position, aim) * TILE_SIZE : 0;
   const complete = mission.targets.every(id => statusAt(state, id) === 'done');
   const atLander = distance(state.position, mission.start) <= .65;
-  const [hintTitle, hintText] = hint(state, mode, route, nearby);
+  const step = tourStep(state, mode, route, acked, nearby);
+  const tg = guide ? step.target : null;
+  const hi = (target: Target) => tg === target ? ' tour-hi' : '';
 
   function pick(cell: Cell) {
     if (!canEdit || !inMap(cell) || distance(state.position, cell) <= .15 || (route.length && same(route[route.length - 1], cell))) return;
     setRoute([...route, cell]);
   }
-  const lock = ended ? 'Operations ended' : effect ? EFFECT_NAME[effect] + '…' : speed > 0 ? 'Stop the rover first' : '';
-  const budget = (e: number, m: number) => e > state.battery ? 'Not enough battery' : m > timeLeft ? 'Not enough time' : '';
+  function skipTour() { setGuide(false); try { localStorage.setItem('apogee-tour-off-' + state.mission, '1'); } catch { /* ignore */ } }
+  function showTour() { setGuide(true); setAcked(new Set(['intro'])); try { localStorage.removeItem('apogee-tour-off-' + state.mission); } catch { /* ignore */ } }
+  const lock = ended ? t('why.ended') : effect ? t(('fx.' + effect) as Key) + '…' : speed > 0 ? t('why.stop') : '';
+  const budget = (e: number, mi: number) => e > state.battery ? t('why.battery') : mi > timeLeft ? t('why.time') : '';
   const scanCost = state.loadout.scanner === 'stereo' ? 8 : 6, analysisCost = state.loadout.instrument === 'spectral' ? 16 : 12;
-  const actions: { id: StationaryAction['type']; key: string; label: string; cost: string; reason: string; run: () => void }[] = [
-    { id: 'scan', key: 'Q', label: 'Scan', cost: scanCost + ' EU', reason: lock || (!state.loadout.scanner ? 'No scanner' : budget(scanCost, 4)), run: () => act({ type: 'scan' }) },
-    { id: 'analyze', key: 'F', label: 'Analyze', cost: analysisCost + ' EU', reason: lock || (!nearby ? 'No sample in range' : statusAt(state, nearby) !== 'open' ? 'Already analyzed' : state.pending.length >= slots ? 'Storage full' : budget(analysisCost, 7)), run: () => nearby && act({ type: 'analyze', site: nearby }) },
-    { id: 'transmit', key: 'T', label: 'Transmit', cost: '6 EU', reason: lock || (!state.pending.length ? 'No data stored' : budget(6, 4)), run: () => act({ type: 'transmit' }) },
-    { id: 'recharge', key: 'R', label: 'Recharge', cost: '+10 min', reason: lock || (state.battery >= CAPACITY - 1e-6 ? 'Battery full' : sunlight(state.position, state.elapsed + 5) < .25 ? 'Too dark here' : budget(0, 10)), run: () => act({ type: 'recharge', minutes: 10 }) },
+  const actions: { id: StationaryAction['type']; key: string; cost: string; reason: string; run: () => void }[] = [
+    { id: 'scan', key: 'Q', cost: scanCost + ' EU', reason: lock || (!state.loadout.scanner ? t('why.noScanner') : budget(scanCost, 4)), run: () => act({ type: 'scan' }) },
+    { id: 'analyze', key: 'F', cost: analysisCost + ' EU', reason: lock || (!nearby ? t('why.noSample') : statusAt(state, nearby) !== 'open' ? t('why.done') : state.pending.length >= slots ? t('why.full') : budget(analysisCost, 7)), run: () => nearby && act({ type: 'analyze', site: nearby }) },
+    { id: 'transmit', key: 'T', cost: '6 EU', reason: lock || (!state.pending.length ? t('why.noData') : budget(6, 4)), run: () => act({ type: 'transmit' }) },
+    { id: 'recharge', key: 'R', cost: t('act.rechargeCost'), reason: lock || (state.battery >= CAPACITY - 1e-6 ? t('why.fullBattery') : sunlight(state.position, state.elapsed + 5) < .25 ? t('why.dark') : budget(0, 10)), run: () => act({ type: 'recharge', minutes: 10 }) },
   ];
 
-  useEffect(() => {
-    function onKey(e: globalThis.KeyboardEvent) {
-      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
-      const t = e.target;
-      if (t instanceof Element && t.closest('input,textarea,select,[contenteditable]')) return;
-      const k = e.key.toLowerCase();
-      const action = actions.find(a => a.key.toLowerCase() === k);
-      if (action) { if (!action.reason) { e.preventDefault(); action.run(); } return; }
-      if (k === 'm') { e.preventDefault(); setTactical(v => !v); return; }
-      if (k === 'escape') { if (tactical) setTactical(false); else if (garage) setGarage(false); else if (driving) setMode('paused'); return; }
-      if (k === 'enter' && !ended && !effect && !(t instanceof HTMLButtonElement)) { e.preventDefault(); setMode(driving ? 'paused' : 'driving'); }
+  const keyRef = useRef<(e: globalThis.KeyboardEvent) => void>(() => {});
+  keyRef.current = e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    const tgt = e.target;
+    if (tgt instanceof Element && tgt.closest('input,textarea,select,[contenteditable]')) return;
+    const k = e.key.toLowerCase();
+    const action = actions.find(a => a.key.toLowerCase() === k);
+    if (action) { if (!action.reason) { e.preventDefault(); action.run(); } return; }
+    if (k === 'm') { e.preventDefault(); setTactical(v => !v); return; }
+    if (k === 'h') { e.preventDefault(); if (guide) skipTour(); else showTour(); return; }
+    if (k === 'escape') { if (tactical) setTactical(false); else if (garage) setGarage(false); else if (driving) setMode('paused'); return; }
+    if (k === 'enter' && !(tgt instanceof HTMLButtonElement)) {
+      if (guide && step.ack) { e.preventDefault(); setAcked(s => new Set(s).add(step.id)); return; }
+      if (!ended && !effect) { e.preventDefault(); setMode(driving ? 'paused' : 'driving'); }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
+  };
+  useEffect(() => {
+    const f = (e: globalThis.KeyboardEvent) => keyRef.current(e);
+    window.addEventListener('keydown', f);
+    return () => window.removeEventListener('keydown', f);
+  }, []);
 
-  const mapFallback = <div className="hud-scene-fallback"><TacticalMap state={state} preview={preview} route={remaining} onPick={canEdit ? pick : undefined} /></div>;
-  const steer = guide ? Math.max(-1, Math.min(1, guide.turn / 90)) : 0;
+  const mapFallback = <div className="hud-scene-fallback"><p>{t('hud.webgl')}</p><TacticalMap state={state} preview={preview} route={remaining} onPick={canEdit ? pick : undefined} /></div>;
+  const steer = Math.max(-1, Math.min(1, turn / 90));
+  const toast = state.reason ? m(state.reason) : null;
+  const showHint = !guide || step.id === 'done';
+  const hint: [string, string] | null = !showHint ? null : ended ? [t('hint.ended'), t('hint.endedText')] : complete ? [t('hint.complete'), t('hint.completeText')] :
+    state.pending.length && speed === 0 ? [t('hint.send'), t('hint.sendText')] : nearby && statusAt(state, nearby) === 'open' ? [t('hint.range'), t(speed > 0 ? 'hint.rangeStop' : 'hint.rangeGo')] :
+    state.battery <= RESERVE ? [t('hint.power'), t('hint.powerText')] : null;
 
-  return <div className={'hud-root mode-' + mode + (ended ? ' ended' : '')}>
+  return <div className={'hud-root mode-' + mode + (ended ? ' ended' : '') + (guide ? ' touring' : '')}>
     <div className="hud-scene">
-      <SceneBoundary fallback={mapFallback}><Suspense fallback={<div className="hud-loading">Establishing surface link…</div>}>
+      <SceneBoundary fallback={mapFallback}><Suspense fallback={<div className="hud-loading">{t('hud.loading')}</div>}>
         <ExpeditionScene state={state} preview={preview} waypoints={remaining} mode={mode} effect={effect} onPick={pick} />
       </Suspense></SceneBoundary>
     </div>
     <div className="hud-vignette" aria-hidden="true" />
 
     <header className="hud-top">
-      <button className="hud-icon-btn" onClick={exit} aria-label="Leave mission">‹</button>
-      <div className="hud-title"><span>MISSION {mission.number}</span><strong>{mission.name}</strong></div>
-      <div className="hud-objectives" aria-label="Objectives">
+      <button className="hud-icon-btn" onClick={exit} aria-label={t('hud.leave')} title={t('hud.leave')}>‹</button>
+      <div className="hud-title"><span>{t('hud.mission')} {mission.number}</span><strong>{missionName(t, mission.id)}</strong></div>
+      <div className="hud-objectives">
         {mission.targets.map(id => <div key={id} className={'hud-objective ' + statusAt(state, id)}>
-          <i /><span>{SITE_NAME[id]}</span><small>{statusAt(state, id) === 'done' ? 'Sent' : statusAt(state, id) === 'stored' ? 'Stored' : SITES[id].science + ' pts'}</small>
+          <i /><span>{siteName(t, id)}</span><small>{statusAt(state, id) === 'done' ? t('hud.sent') : statusAt(state, id) === 'stored' ? t('hud.stored') : t('hud.pts', { n: SITES[id].science })}</small>
         </div>)}
       </div>
-      <div className="hud-score"><div><span>Science</span><b>{state.science}</b></div><div><span>RC</span><b>{state.credits}</b></div></div>
-      <button className={'hud-btn ' + (complete || ended ? 'primary' : 'ghost')} onClick={report} disabled={!!effect}>Report</button>
+      <div className="hud-score"><div><span>{t('hud.science')}</span><b>{state.science}</b></div><div><span>{t('hud.rc')}</span><b>{state.credits}</b></div></div>
+      <LangSwitch className="hud" />
+      <button className={'hud-icon-btn' + (guide ? ' on' : '')} onClick={() => guide ? skipTour() : showTour()} aria-label={t('hud.help')} title={t('hud.help') + ' (H)'} aria-pressed={guide}>?</button>
+      <button className={'hud-btn ' + (complete || ended ? 'primary' : 'ghost') + hi('report')} onClick={report} disabled={!!effect}>{t('hud.report')}</button>
     </header>
 
     <aside className="hud-left">
-      <Gauge label="Battery" value={state.battery} max={CAPACITY} unit="EU" warn={state.battery <= RESERVE} />
-      <Gauge label="Time left" value={timeLeft} max={mission.limit} unit="min" warn={timeLeft < 15} />
+      <Gauge label={t('hud.battery')} value={state.battery} max={CAPACITY} unit="EU" warn={state.battery <= RESERVE} />
+      <Gauge label={t('hud.time')} value={timeLeft} max={mission.limit} unit="min" warn={timeLeft < 15} />
       <div className="hud-readouts">
-        <div><span>Speed</span><b>{num(speed)}<small>m/s</small></b></div>
-        <div><span>Sun</span><b>{Math.round(light * 100)}<small>%</small></b></div>
-        <div><span>Ground</span><b className="small">{TERRAIN_NAME[terrain]}</b></div>
-        <div><span>Data</span><b>{state.pending.length}/{slots}</b></div>
+        <div className={hi('brake').trim()}><span>{t('hud.speed')}</span><b>{num(speed)}<small>m/s</small></b></div>
+        <div><span>{t('hud.sun')}</span><b>{Math.round(light * 100)}<small>%</small></b></div>
+        <div><span>{t('hud.ground')}</span><b className="small">{terrainName(t, terrain)}</b></div>
+        <div><span>{t('hud.data')}</span><b>{state.pending.length}/{slots}</b></div>
       </div>
-      <p className="hud-wheels">{MODULES[state.loadout.wheel].label} WHEELS</p>
+      <p className="hud-wheels">{modLabel(t, state.loadout.wheel)}</p>
     </aside>
 
-    <div className="hud-minimap" aria-hidden={tactical}>
-      <button className="hud-minimap-open" onClick={() => setTactical(true)} aria-label="Open tactical map">
+    {!planning && <div className="hud-minimap">
+      <button className="hud-minimap-open" onClick={() => setTactical(true)} aria-label={t('hud.openMap')}>
         <TacticalMap compact state={state} preview={preview} route={remaining} />
-        <span>M · MAP</span>
+        <span>M · {t('hud.map')}</span>
       </button>
-    </div>
-
-    {driving && guide && next && <div className="hud-compass" aria-live="off">
-      <div className="hud-compass-track"><i style={{ left: 50 - steer * 46 + '%' }} /></div>
-      <span>{nameAt(next, mission.start)} · {num(guide.meters, 0)} m</span>
     </div>}
 
-    <div className="hud-hint" role="status"><b>{hintTitle}</b><span>{hintText}</span></div>
-    {state.reason && <div className="hud-toast" key={state.reason}>{state.reason}</div>}
+    {!planning && aim && <div className={'hud-compass' + hi('compass')}>
+      <div className="hud-compass-track"><i style={{ left: 50 - steer * 46 + '%' }} /></div>
+      <span>{nameAt(t, aim, mission.start)} · {num(meters, 0)} m</span>
+    </div>}
 
-    {planning && !ended && <section className="hud-planner" aria-label="Route planner">
-      <header><span>ROUTE PLAN</span><b>{route.length ? route.length + ' waypoint' + (route.length > 1 ? 's' : '') : 'No waypoints'}</b></header>
-      <div className="hud-presets">
+    {hint && <div className="hud-hint" role="status"><b>{hint[0]}</b><span>{hint[1]}</span></div>}
+    {toast && <div className="hud-toast" key={toast + state.elapsed}>{toast}</div>}
+
+    {planning && !ended && <section className="hud-planner" aria-label={t('plan.title')}>
+      <header><span>{t('plan.title')}</span><b>{route.length === 0 ? t('plan.none') : route.length === 1 ? t('plan.one') : t('plan.count', { n: route.length })}</b></header>
+      <div className={'hud-presets' + hi('presets')}>
         {state.mission === 'dune-crossing' ? <>
-          <button className="hud-chip" onClick={() => setRoute([...DUNE_NORTH])}>North detour<small>firm ground</small></button>
-          <button className="hud-chip" onClick={() => setRoute([SITES.strata.cell])}>Dune shortcut<small>soft sand</small></button>
-        </> : <button className="hud-chip" onClick={() => setRoute(mission.targets.filter(id => statusAt(state, id) === 'open').map(id => SITES[id].cell))}>Survey sites<small>both targets</small></button>}
-        {!atLander && <button className="hud-chip" onClick={() => pick(mission.start)}>Return<small>to lander</small></button>}
+          <button className="hud-chip" onClick={() => setRoute([...DUNE_NORTH])}>{t('plan.north')}<small>{t('plan.northSub')}</small></button>
+          <button className="hud-chip" onClick={() => setRoute([SITES.strata.cell])}>{t('plan.short')}<small>{t('plan.shortSub')}</small></button>
+        </> : nextOpen && <button className="hud-chip" onClick={() => setRoute(mission.targets.filter(id => statusAt(state, id) === 'open').map(id => SITES[id].cell))}>{t('plan.sites')}<small>{t('plan.sitesSub')}</small></button>}
+        {!atLander && <button className="hud-chip" onClick={() => pick(mission.start)}>{t('plan.return')}<small>{t('plan.returnSub')}</small></button>}
       </div>
-      {route.length > 0 && <ol className="hud-route">{route.map((c, i) => <li key={i + key(c)}><span>{i + 1}</span>{nameAt(c, mission.start)}<small>{TERRAIN_NAME[terrainAt(c)]}</small>
-        <button aria-label={'Remove waypoint ' + (i + 1)} onClick={() => setRoute(route.filter((_, j) => j !== i))}>×</button></li>)}</ol>}
-      {preview.steps.length > 0 && <div className="hud-estimate">
-        <div><span>Energy</span><b>{range(preview.energy)}<small>EU</small></b></div>
-        <div><span>Time</span><b>{range(preview.minutes)}<small>min</small></b></div>
-        <div><span>Risk</span><b style={{ color: RISK_COLOR[preview.risk] }}>{preview.risk.toUpperCase()}</b></div>
+      <p className="hud-note left">{t('plan.hint')}</p>
+      {route.length > 0 && <ol className="hud-route">{route.map((c, i) => <li key={i + key(c)}><span>{i + 1}</span>{nameAt(t, c, mission.start)}<small>{terrainName(t, terrainAt(c))}</small>
+        <button aria-label={t('plan.remove', { n: i + 1 })} onClick={() => setRoute(route.filter((_, j) => j !== i))}>×</button></li>)}</ol>}
+      {preview.steps.length > 0 && <div className={'hud-estimate' + hi('estimate')}>
+        <div><span>{t('est.energy')}</span><b>{range(preview.energy)}<small>EU</small></b></div>
+        <div><span>{t('est.time')}</span><b>{range(preview.minutes)}<small>min</small></b></div>
+        <div><span>{t('est.risk')}</span><b style={{ color: RISK_COLOR[preview.risk] }}>{t(('risk.' + preview.risk) as Key)}</b></div>
       </div>}
-      {preview.warnings.slice(0, 2).map(w => <p className="hud-warn" key={w}>{w}</p>)}
+      {preview.warnings.slice(0, 2).map(x => <p className="hud-warn" key={x}>{m(x)}</p>)}
       <div className="hud-planner-foot">
-        {route.length > 0 && <button className="hud-btn ghost" onClick={() => setRoute([])}>Clear</button>}
-        <button className="hud-btn primary big" onClick={e => { e.currentTarget.blur(); setMode('driving'); }} disabled={!!effect}>Start drive<kbd>Enter</kbd></button>
+        {route.length > 0 && <button className="hud-btn ghost" onClick={() => setRoute([])}>{t('plan.clear')}</button>}
+        <button className={'hud-btn primary big' + hi('start')} onClick={e => { e.currentTarget.blur(); setMode('driving'); }} disabled={!!effect}>{t('plan.start')}<kbd>Enter</kbd></button>
       </div>
-      <p className="hud-note">Estimates only. What you actually drive decides the cost.</p>
+      <p className="hud-note">{t('plan.note')}</p>
     </section>}
 
     {!planning && !ended && <div className="hud-drivebar">
-      {driving ? <button className="hud-btn ghost" onClick={() => setMode('paused')}>Pause<kbd>Esc</kbd></button> :
-        <button className="hud-btn primary" onClick={e => { e.currentTarget.blur(); setMode('driving'); }} disabled={!!effect}>Resume<kbd>Enter</kbd></button>}
-      <button className="hud-btn ghost" onClick={() => setMode('planning')} disabled={!!effect}>Replan</button>
-      {atLander && state.loadout.spares.length > 0 && <button className="hud-btn ghost" onClick={() => { setMode('paused'); setGarage(true); }}>Garage</button>}
-      <div className="hud-keys" aria-hidden="true"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>drive</span><kbd>Space</kbd><span>brake</span></div>
+      {driving ? <button className="hud-btn ghost" onClick={() => setMode('paused')}>{t('drive.pause')}<kbd>Esc</kbd></button> :
+        <button className={'hud-btn primary' + hi('resume')} onClick={e => { e.currentTarget.blur(); setMode('driving'); }} disabled={!!effect}>{t('drive.resume')}<kbd>Enter</kbd></button>}
+      <button className="hud-btn ghost" onClick={() => setMode('planning')} disabled={!!effect}>{t('drive.replan')}</button>
+      {atLander && state.loadout.spares.length > 0 && <button className="hud-btn ghost" onClick={() => { setMode('paused'); setGarage(true); }}>{t('drive.garage')}</button>}
+      <div className={'hud-keys' + hi('brake')} aria-hidden="true"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>{t('drive.drive')}</span><kbd>Space</kbd><span>{t('drive.brake')}</span></div>
     </div>}
 
-    <div className="hud-actions" aria-label="Field actions">
-      {actions.map(a => <button key={a.id} className={'hud-action' + (effect === a.id ? ' running' : '')} disabled={!!a.reason} onClick={a.run} title={a.reason || a.cost}>
-        <kbd>{a.key}</kbd><b>{a.label}</b><small>{a.reason || a.cost}</small>
+    {!planning && <div className="hud-actions">
+      {actions.map(a => <button key={a.id} className={'hud-action' + (effect === a.id ? ' running' : '') + hi(a.id as Target)} disabled={!!a.reason} onClick={a.run} title={a.reason || a.cost}>
+        <kbd>{a.key}</kbd><b>{t(('act.' + a.id) as Key)}</b><small>{a.reason || a.cost}</small>
       </button>)}
-    </div>
+    </div>}
 
-    {log.length > 0 && <ol className="hud-log" aria-label="Mission log">{log.slice(-3).map((l, i) => <li key={i + l}>{l}</li>)}</ol>}
+    {!guide && log.length > 0 && !planning && <ol className="hud-log">{log.slice(-3).map((l, i) => <li key={i + l}>{m(l)}</li>)}</ol>}
 
-    {tactical && <div className="hud-overlay" role="dialog" aria-label="Tactical map" onClick={e => { if (e.target === e.currentTarget) setTactical(false); }}>
+    {guide && <Tour step={step} onAck={() => setAcked(s => new Set(s).add(step.id))} onSkip={skipTour} />}
+
+    {tactical && <div className="hud-overlay" role="dialog" aria-label={t('map.title')} onClick={e => { if (e.target === e.currentTarget) setTactical(false); }}>
       <div className="hud-overlay-panel map">
-        <header><b>Tactical map</b><span>{canEdit ? 'Click a cell to add a waypoint' : 'Replan to edit waypoints'}</span><button className="hud-icon-btn" onClick={() => setTactical(false)} aria-label="Close">×</button></header>
+        <header><b>{t('map.title')}</b><span>{canEdit ? t('map.edit') : t('map.locked')}</span><button className="hud-icon-btn" onClick={() => setTactical(false)} aria-label={t('map.close')}>×</button></header>
         <TacticalMap state={state} preview={preview} route={remaining} onPick={canEdit ? pick : undefined} />
-        <footer>{(Object.keys(TERRAIN) as TerrainKind[]).map(t => <span key={t}><i style={{ background: TERRAIN[t].color }} />{TERRAIN_NAME[t]}</span>)}<span><i className="ring" />Science site</span><span><i className="lander" />Lander</span></footer>
+        <footer>{(Object.keys(TERRAIN) as TerrainKind[]).map(k => <span key={k}><i style={{ background: TERRAIN[k].color }} />{terrainName(t, k)}</span>)}<span><i className="ring" />{t('map.site')}</span><span><i className="lander" />{t('hud.lander')}</span></footer>
       </div>
     </div>}
 
-    {garage && <div className="hud-overlay" role="dialog" aria-label="Lander garage" onClick={e => { if (e.target === e.currentTarget) setGarage(false); }}>
+    {garage && <div className="hud-overlay" role="dialog" aria-label={t('gar.title')} onClick={e => { if (e.target === e.currentTarget) setGarage(false); }}>
       <div className="hud-overlay-panel">
-        <header><b>Lander garage</b><span>{SWAP_CREDITS} RC · {SWAP_MINUTES} min per swap</span><button className="hud-icon-btn" onClick={() => setGarage(false)} aria-label="Close">×</button></header>
+        <header><b>{t('gar.title')}</b><span>{t('gar.cost', { rc: SWAP_CREDITS, min: SWAP_MINUTES })}</span><button className="hud-icon-btn" onClick={() => setGarage(false)} aria-label={t('map.close')}>×</button></header>
         <ul className="hud-garage">{state.loadout.spares.map(id => { const why = garageStatus(state, id); return <li key={id}>
-          <div><b>{MODULES[id].name}</b><small>{why || MODULES[id].description}</small></div>
-          <button className="hud-btn primary" disabled={!!why} onClick={() => swap(id)}>Install</button></li>; })}</ul>
+          <div><b>{modName(t, id)}</b><small>{why ? m(why) : t(('mod.' + id + '.desc') as Key)}</small></div>
+          <button className="hud-btn primary" disabled={!!why} onClick={() => swap(id)}>{t('gar.install')}</button></li>; })}</ul>
       </div>
     </div>}
   </div>;

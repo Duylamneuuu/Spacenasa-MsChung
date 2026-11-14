@@ -173,3 +173,10 @@
 }
 @media (prefers-reduced-motion: reduce) { .sc-screen *, .sc-screen *::before { animation: none !important; transition: none !important; opacity: 1; } }
 
+
+.sc-badge { display: inline-block; margin-left: 8px; padding: 1px 7px; background: #ff9f4a; color: #1a0d05; font: 700 .56rem var(--font-display, sans-serif); letter-spacing: .14em; vertical-align: 1px; }
+.sc-tip { max-width: 420px; padding: 10px 14px; border-left: 2px solid var(--amber); background: rgba(12,8,7,.55); backdrop-filter: blur(6px); font-size: .9rem; line-height: 1.45; color: #e9dccb; }
+.sc-topbar .lang-switch { pointer-events: auto; margin-left: 12px; }.sc-hangar .sc-head { max-width: min(520px, 46vw); }
+.sc-hangar .sc-head h1 { font-size: clamp(2.2rem, 4.4vw, 4.2rem); }
+.sc-tip { margin-top: 4px; }
+@media (max-height: 760px) { .sc-coeffs .hint { display: none; } .sc-option { padding: 11px 14px; } }

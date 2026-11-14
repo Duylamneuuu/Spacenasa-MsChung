@@ -172,3 +172,72 @@
 }
 @media (prefers-reduced-motion: reduce) { .hud-root *, .hud-root *::before { animation: none !important; transition: none !important; } }
 
+
+/* ---------- Language switch ---------- */
+.lang-switch { display: inline-flex; padding: 2px; gap: 2px; border: 1px solid rgba(255,214,180,.18); background: rgba(12,8,7,.55); backdrop-filter: blur(8px); pointer-events: auto; }
+.lang-switch button { min-width: 38px; height: 28px; border: 0; background: transparent; color: rgba(243,233,218,.55); font: 700 .7rem var(--font-display, sans-serif); letter-spacing: .14em; cursor: pointer; }
+.lang-switch button[aria-pressed="true"] { background: #ff9f4a; color: #1a0d05; }
+.lang-switch button:hover:not([aria-pressed="true"]) { color: #f3e9da; }
+.lang-switch.corner { position: absolute; z-index: 6; top: 22px; right: 28px; }
+.lang-switch.hud { height: 40px; align-items: center; }
+
+/* ---------- Guided tutorial ---------- */
+.tour { position: absolute; z-index: 4; width: min(380px, calc(100vw - 32px)); padding: 18px 20px 16px; display: grid; gap: 10px;
+  background: rgba(16,10,8,.94); border: 1px solid #ff9f4a; box-shadow: 0 18px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,159,74,.15);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); animation: tour-in .3s ease-out; }
+.tour h3 { margin: 0; font: 700 1.3rem/1.1 var(--font-display, sans-serif); text-transform: uppercase; letter-spacing: .03em; color: #fff3e2; }
+.tour p { margin: 0; font-size: 1rem; line-height: 1.5; color: #e9dccb; }
+.tour-phases { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.tour-phases li { flex: 1; display: grid; gap: 5px; font: 600 .56rem var(--font-display, monospace); letter-spacing: .16em; text-transform: uppercase; color: rgba(243,233,218,.35); }
+.tour-phases i { height: 3px; background: rgba(255,255,255,.12); }
+.tour-phases li.past { color: rgba(127,227,223,.7); }
+.tour-phases li.past i { background: #7fe3df; }
+.tour-phases li.now { color: #ff9f4a; }
+.tour-phases li.now i { background: #ff9f4a; }
+.tour-keys { display: flex; gap: 6px; }
+.tour-keys kbd { min-width: 2.2em; height: 2.2em; font-size: .85rem; border-color: #ff9f4a; color: #ff9f4a; animation: tour-key 1.2s ease-in-out infinite; }
+.tour-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+.tour-skip { padding: 0; border: 0; background: none; color: rgba(243,233,218,.5); font-size: .78rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.tour-skip:hover { color: #f3e9da; }
+.tour .hud-btn { min-height: 38px; }
+
+/* Placement next to what the step is about. */
+.tour-at-center { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px)); }
+.tour-at-presets, .tour-at-estimate, .tour-at-start { right: 372px; top: 96px; }
+.tour-at-start { top: auto; bottom: 64px; }
+.tour-at-compass, .tour-at-resume { left: 50%; top: 150px; transform: translateX(-50%); }
+.tour-at-brake { left: 262px; top: 50%; transform: translateY(-50%); }
+.tour-at-analyze, .tour-at-transmit, .tour-at-recharge { right: 18px; bottom: 112px; }
+.tour-at-report { right: 18px; top: 74px; }
+.touring .hud-hint { display: none; }
+
+.tour-hi { position: relative; z-index: 3; outline: 2px solid #ff9f4a !important; outline-offset: 3px; animation: tour-glow 1.4s ease-in-out infinite; }
+.hud-readouts > div.tour-hi { outline-offset: 4px; }
+.hud-action.tour-hi:not(:disabled) { background: rgba(255,159,74,.2); }
+@keyframes tour-in { from { opacity: 0; } }
+@keyframes tour-glow { 50% { box-shadow: 0 0 0 6px rgba(255,159,74,.25); } }
+@keyframes tour-key { 50% { background: rgba(255,159,74,.2); } }
+.hud-icon-btn.on { border-color: #ff9f4a; color: #ff9f4a; }
+.hud-note.left { text-align: left; margin-top: -4px; }
+.hud-scene-fallback { flex-direction: column; gap: 16px; color: var(--hud-dim); }
+
+@media (max-width: 1100px) {
+  .tour-at-presets, .tour-at-estimate, .tour-at-start { right: 330px; }
+  .lang-switch.hud { display: none; }
+}
+@media (max-width: 760px) {
+  .tour, .tour-at-center { left: 12px; right: 12px; top: 64px; bottom: auto; transform: none; width: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .tour, .tour-hi, .tour-keys kbd { animation: none !important; } }
+
+/* Polish pass */
+.hud-title span, .hud-planner > header span, .hud-wheels, .hud-minimap-open span { text-transform: uppercase; }
+.tour-phases li { letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tour-at-compass, .tour-at-resume, .tour-at-brake { left: 18px; top: 84px; transform: none; width: min(340px, calc(100vw - 32px)); }
+.mode-driving.touring .hud-left, .mode-paused.touring .hud-left { top: auto; bottom: 18px; transform: none; }
+.hud-action { width: 104px; }
+.hud-action b { letter-spacing: .06em; white-space: nowrap; }.hud-drivebar { left: 264px; transform: none; }
+.hud-keys span { white-space: nowrap; }
+@media (max-width: 1280px) { .hud-keys { display: none; } }
+@media (max-width: 760px) { .hud-drivebar { left: 50%; transform: translateX(-50%); } }
+.touring .tour-at-report ~ .hud-minimap, .touring:has(.tour-at-report) .hud-minimap { visibility: hidden; }
