@@ -3,12 +3,12 @@
 ## Separation of concerns
 
 ```
-App/UI (coordinator) → Game controller / state → Pure simulation → Updated state
-                         ↓
-                 Three.js scene observes state
+Content + NASA dataset (Sơn + Cường) → Pure simulation (Hải) → Updated state
+                                             ↑              ↓
+                                      App/UI (Duy) ← Three.js scene (Bảo)
 ```
 
-The UI should **not** calculate mission physics. The 3D scene should **not** own budget or success rules.
+The UI should **not** calculate mission physics. The 3D scene should **not** own budget or success rules. **Sơn owns numeric/scientific data; Cường owns narrative/events; Hải consumes both and implements consequences.** Duy coordinates the interfaces.
 
 ## Shared types proposal (src/types/game.ts)
 
@@ -55,6 +55,17 @@ export type PlayerAction =
 ```
 
 These types are **proposal** only. The integrator should freeze the file after a 10-minute team review. Agree module counts and whether budgetRemaining is derived from selected modules instead of stored.
+
+## Content and NASA data interface (fourth workstream)
+
+The content/data branch supplies **data, not runtime calculations**:
+
+- `src/data/` — documented mission constraints, spacecraft module values, scientific facts and source references; owned by Sơn.
+- `src/content/` — mission briefing text, event choices, descriptions and debrief messages; owned by Cường.
+- `docs/science/` — primary URLs, units, date of access, simplifications, and data-use explanation.
+- `docs/design/` — gameplay flow, original assets / licenses and player UX.
+
+Use stable IDs so a narrative event refers to a simulation rule or option by ID, not by string matching. Any scientific value entering the engine must carry units and references. During scaffolding, **mock values are explicitly labeled mock**. See `docs/CONTENT_DATA.md`.
 
 ## Module APIs (proposal)
 
