@@ -1,8 +1,8 @@
 # Kiểm tra tích hợp — 14/11/2026
 
-- Mốc tích hợp: main `802fd0d`. Bốn nhánh feat cùng ở `aa938fc`, không có PR mở; Issues #1–#5 mô tả đúng phạm vi P0. Nhánh và worktree mới giữ nguyên main và các nhánh nhóm.
-- Bản GDD đã chốt được đọc từ Git; bản Google Docs xuất văn bản công khai cùng tiêu đề và ngày phê duyệt. GDD trong repo là nguồn chuẩn cho thay đổi này.
-- App ở mốc trên có diorama Mission Control, chọn tên lửa, bản đồ lái tự do và hai đường logic bề mặt. Chi phí/rủi ro có nhánh dùng Math.random, UI lái trực tiếp; RIMFAX, sạc và ISRU lệch phạm vi GDD. Không có tệp GLB/GLTF, FBX hay bản vẽ cảnh độc lập: rover là JSX primitives trong Mars3DRover.tsx.
-- Build gốc chạy được với lockfile; chưa có script test. Có thể giữ hình học sáu bánh, đèn, cột camera và tấm pin làm nền cho model thay thế.
-- Hợp đồng đường mới nằm trong src/types/expedition.ts. Mỗi bước thực thi phát snapshot và tọa độ, không chuyển logic pin/thời gian vào Three.js. Chỉ trình bày số liệu đo từ NASA ở nơi có nguồn và giải thích; mọi hệ số cân bằng vẫn là giả lập.
+- Mốc tích hợp: `main` tại `7606934`. PR #6 đã hợp nhất, chốt Plan & Drive và giao diện hoàn toàn tiếng Anh. Bốn nhánh feat cùng ở `aa938fc`; không có PR mở ở thời điểm kiểm tra; Issues #1–#5 là phạm vi P0. Nhánh tích hợp riêng không sửa nhánh nhóm.
+- Commit `802fd0d` đã có rover thủ tục, quán tính, lái tiến/lùi, đánh lái và camera bám xe. Nhưng scene giữ pose, trả callback trừ điện/sạc và cùng tồn tại với logic bề mặt theo lượt có Math.random. Luồng chính còn tên lửa, Δv, ISRU và nội dung cũ. Không có GLB/GLTF/FBX được commit.
+- Giữ quy ước +Z và thiết kế sáu bánh, cột camera, tấm pin, điều khiển yaw có quán tính. App mới dùng duy nhất engine `src/sim/expedition.ts`: nhập phím → bước cố định 60 Hz → cập nhật pose, địa hình, năng lượng và thời gian. R3F đọc trạng thái để vẽ, không tính chi phí. Tệp legacy vẫn ở repo để nhóm đối chiếu, không nằm trong cây import của App đang chạy.
+- Preview lấy cùng hàm chi phí di chuyển và trả khoảng ước lượng. Xe tự lái bằng WASD theo hướng dẫn, không nhận lệnh bám tuyến. Chạm vùng có nguy cơ vượt giới hạn bám sẽ giữ vị trí trước biên và chuyển Paused.
+- Đã đọc bản GDD trong Git; bản Google Docs công khai xuất văn bản được, nhưng quyết định sản phẩm mới nhất là PR #6. Đã xác minh nguồn NASA về thời lượng sol (xem README); các hệ số còn lại là cân bằng trò chơi.
 
