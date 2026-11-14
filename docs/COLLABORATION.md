@@ -1,51 +1,32 @@
-# Team MS Chung — GitHub workflow for APOGEE
+# MS Chung — GitHub collaboration / APOGEE Plan & Drive
 
-**One repo, one web app, four branches, five contributors.**
+> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
 
-## Owners and paths
 
-- **Duy** — feat/ui: App and UI, styles, integration, shared types and dependency changes.
-- **Bảo** — feat/scene: Mars terrain, rover/3D assets, waypoint callbacks and animations.
-- **Hải** — feat/simulation: pure TypeScript rules and tests, consuming but not owning scientific data.
-- **Sơn** — feat/content-data: src/data/ and docs/science/ (NASA source/units/scientific caveats).
-- **Cường** — feat/content-data: src/content/, docs/design/, public/assets/ui/ (missions, tutorial, design and pitch).
+## Ownership
+Duy: feat/ui, App/UI/CSS & coordinated types. Bảo: feat/scene and public/assets/3d. Hải: feat/simulation and tests. Sơn: src/data/ + docs/science/. Cường: src/content/ + docs/design/ + public/assets/ui/. Last two share feat/content-data but **do not share edited files**.
 
-Sơn/Cường work on one shared branch but **different files**, always pulling before pushing. Duy coordinates src/types/game.ts, package.json and integration boundaries.
+## Read the source
+[Approved GDD](APOGEE_GDD.md) · [Interface contract](INTERFACES.md) · [Work prompt](WORK_MASTER_PROMPT.md). The current repository already contains manual WASD implementation, but **Planning Mode** and English-language cleanup still require verification/implementation.
 
-## Setup
-
+## Safe workflow
 ```bash
 git clone https://github.com/Duylamneuuu/Spacenasa-MsChung.git
 cd Spacenasa-MsChung
-npm install
 git fetch origin
-git switch feat/scene           # example for Bảo
+git switch feat/scene  # choose the branch for your role
 git pull --ff-only origin feat/scene
+npm install
 npm run dev
+npm run build
 ```
 
-## PR / merge discipline
+1. Create small, reviewable PRs with evidence. Avoid pushing shared changes without coordination; never force-push team branches.
+2. Before edits, fetch latest main and inspect active PRs/commits; **do not reset** work already written by teammates.
+3. Duy owns shared interfaces; inspect actual code rather than implementing hypothetical APIs in isolation.
+4. Scene emits user actions and renders rover; simulation owns the actual physics/game resource state; UI displays and dispatches.
+5. Demo every 2–3 hours: Plan waypoint → Start Drive → manually drive WASD → energy/time/risk update → science analysis → transmit → report.
+6. Every player-visible string must be English (including logs/errors, image alt and ARIA). Docs can remain Vietnamese.
+7. Source NASA figures with units and label game balance as mock. No claim of NASA endorsement.
 
-1. Open **Draft PR** from your branch to main early; link its GitHub Issue and include screenshot/demo or state transition.
-2. Make small working changes and push every 60–120 minutes where possible; **do not force-push** or overwrite another owner's files.
-3. Fetch and merge the latest main on your workstream branch before proposing final merge; validate npm run build.
-4. Duy reviews and merges a coherent end-to-end slice first, not isolated non-interacting modules.
-5. If changing interfaces: discuss and let Duy merge the shared types first; everyone then pulls new main.
-
-The old Mission Control scaffold is NOT the new APOGEE implementation. **Use docs/APOGEE_GDD.md + docs/INTERFACES.md**, not legacy examples in src/, to agree the target API.
-
-## What to demo every 2–3 hours
-
-Mission 02: Design rover → Preview short sand vs long safe route → Execute → Sample → Transmit → Debrief. Verify battery/time/RC and scene animation react consistently.
-
-## Access
-
-The repo is public, but public access does not let teammates push. Duy invites collaborators through Settings → Collaborators using actual GitHub usernames, or teammates can fork and create PRs. Never commit secrets or third-party restricted assets.
-
-## Tracking
-
-[Issues](https://github.com/Duylamneuuu/Spacenasa-MsChung/issues) · [PRs](https://github.com/Duylamneuuu/Spacenasa-MsChung/pulls) · [Actions](https://github.com/Duylamneuuu/Spacenasa-MsChung/actions)
-
-Dashboard: https://docs.google.com/spreadsheets/d/1vQaIcRW_29K1SndlQK_s5gxr29AArEWeHHig4Z-sVzQ/edit
-
-**Google Sheet progress is manual**, not auto-synced with GitHub. Each task has one accountable owner. Do not assume an open GitHub Issue means the task has not been started.
+[GitHub Issues](https://github.com/Duylamneuuu/Spacenasa-MsChung/issues) · [PRs](https://github.com/Duylamneuuu/Spacenasa-MsChung/pulls) · [Actions](https://github.com/Duylamneuuu/Spacenasa-MsChung/actions).
