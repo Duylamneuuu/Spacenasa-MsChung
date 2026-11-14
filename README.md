@@ -5,6 +5,14 @@
 > **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
 
 
+> [!TIP]
+> **Demo, verification, and NASA sources**
+>
+> - [Judge demo and acceptance checklist](docs/design/DEMO_QA.md) — two routes through Mission 02, with results tied to the tested build.
+> - [NASA/JPL science references](docs/science/SOURCES.md) — primary sources and the line between science and gameplay balance.
+> - [Playable build PR #7](https://github.com/Duylamneuuu/Spacenasa-MsChung/pull/7) · [Browser screenshots](https://github.com/Duylamneuuu/Spacenasa-MsChung/tree/58206fc16292dbafd2bc0b1f1c9092bf0c5ea390/docs/evidence) · [Node 20 CI](https://github.com/Duylamneuuu/Spacenasa-MsChung/actions/runs/43576039325/job/132390394596)
+
+
 ## Play loop
 **Choose Mission → Design Rover → Preflight budget/mass → Planning Mode (click waypoints + preview) → START DRIVE → WASD manual driving along the route guide → Park to Scan/Analyze/Transmit → Science Score / Research Credits → Lander Garage → Debrief / Retry.**
 
