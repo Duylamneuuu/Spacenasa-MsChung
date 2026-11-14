@@ -1,109 +1,162 @@
-import React, { useState } from 'react';
-import { MissionScene } from './scene/MissionScene';
-import { ResourcesPanel } from './ui/ResourcesPanel';
-import { BriefingView } from './ui/BriefingView';
-import { DesignView } from './ui/DesignView';
-import { PreflightLaunchView } from './ui/PreflightLaunchView';
-import { OperationsView } from './ui/OperationsView';
-import { DebriefView } from './ui/DebriefView';
-import { applyAction, evaluateMission, getInitialState } from './sim/engine';
-import type { MissionState, PlayerAction, Phase } from './types/game';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { MISSIONS } from './content/expedition';
+import { DEFAULT_LOADOUT } from './data/expedition';
+import { DRIVE_STEP, evaluateMission, getInitialState, haltDrive, NEUTRAL, performScienceAction, preflight, stepDrive, swapAtLander } from './sim/expedition';
+import type { Cell, ControlMode, DrivingInput, Loadout, MissionId, MissionState, ModuleId, StationaryAction } from './types/expedition';
+import { Debrief, Hangar, Icon, MissionSelect, Preflight, StageBar } from './ui/ExpeditionUI';
+import { Operations } from './ui/ExpeditionOperations';
+
+const HangarScene = lazy(() => import('./scene/ExpeditionScene').then(m => ({ default: m.HangarScene })));
+type Stage = 'select' | 'hangar' | 'preflight' | 'deploy' | 'operations' | 'report';
+const KEYS = { KeyW: 'forward', KeyS: 'reverse', KeyA: 'left', KeyD: 'right', Space: 'brake' } as const;
+const wait = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function App() {
-  const [state, setState] = useState<MissionState>(getInitialState);
-  const [station, setStation] = useState('none');
-  const [show3DScene, setShow3DScene] = useState(true);
+  const [stage, setStage] = useState<Stage>('select');
+  const [missionId, setMissionId] = useState<MissionId>('first-survey');
+  const [loadout, setLoadout] = useState<Loadout>(DEFAULT_LOADOUT);
+  const [state, setState] = useState<MissionState>(() => getInitialState(missionId));
+  const [route, setRoute] = useState<Cell[]>([]);
+  const [mode, setMode] = useState<ControlMode>('planning');
+  const [effect, setEffect] = useState<StationaryAction['type'] | null>(null);
+  const [log, setLog] = useState<string[]>([]);
+  const authoritative = useRef(state);
+  const keyState = useRef<DrivingInput>({ ...NEUTRAL });
+  const busy = useRef(false);
+  const main = useRef<HTMLElement>(null);
+  const mission = MISSIONS[missionId];
 
-  const send = (action: PlayerAction) => setState(old => applyAction(old, action));
+  useEffect(() => { main.current?.focus({ preventScroll: true }); window.scrollTo(0, 0); }, [stage]);
+  function commit(next: MissionState) { authoritative.current = next; setState(next); }
+  function announce(message: string | null) {
+    if (message) setLog(old => old.at(-1) === message ? old : [...old.slice(-5), message]);
+  }
+  function changeMode(next: ControlMode) {
+    if (busy.current || (next === 'driving' && authoritative.current.outcome)) return;
+    keyState.current = { ...NEUTRAL };
+    commit(haltDrive(authoritative.current));
+    setMode(next);
+  }
 
-  const steps: { phase: Phase; label: string; stepNumber: number }[] = [
-    { phase: 'briefing', label: '1. PLAN (Landing Site)', stepNumber: 1 },
-    { phase: 'design', label: '2. DESIGN (Rover & Depot)', stepNumber: 2 },
-    { phase: 'preflight', label: '3. DECIDE (Preflight & Rocket)', stepNumber: 3 },
-    { phase: 'operations', label: '4. SIMULATE (Surface Ops)', stepNumber: 4 },
-    { phase: 'debrief', label: '5. DEBRIEF (Outcome Analysis)', stepNumber: 5 },
-  ];
+  useEffect(() => {
+    if (stage !== 'operations' || mode !== 'driving') return;
+    let frame = 0, previous = performance.now(), accumulator = 0, lastPaint = 0, lastPainted = authoritative.current;
+    const reset = () => {
+      keyState.current = { ...NEUTRAL };
+      commit(haltDrive(authoritative.current));
+      accumulator = 0;
+    };
+    const control = (event: KeyboardEvent, down: boolean) => {
+      const action = KEYS[event.code as keyof typeof KEYS];
+      if (!action) return;
+      if (!down) { keyState.current[action] = false; return; }
+      const target = event.target;
+      if (event.ctrlKey || event.metaKey || event.altKey || busy.current ||
+        (target instanceof Element && target.closest('input,textarea,select,[contenteditable], [role="dialog"]')) ||
+        (action === 'brake' && target instanceof Element && target.closest('button,a,summary'))) return;
+      event.preventDefault();
+      keyState.current[action] = true;
+    };
+    const down = (e: KeyboardEvent) => control(e, true), up = (e: KeyboardEvent) => control(e, false);
+    const focus = (e: FocusEvent) => { if (e.target instanceof Element && e.target.closest('input,textarea,select,[contenteditable],[role="dialog"]')) reset(); };
+    function tick(now: number) {
+      accumulator += Math.min((now - previous) / 1000, .1);
+      previous = now;
+      if (!busy.current) while (accumulator >= DRIVE_STEP) {
+        accumulator -= DRIVE_STEP;
+        const result = stepDrive(authoritative.current, keyState.current, DRIVE_STEP);
+        authoritative.current = result.state;
+        if (result.stopped || result.state.outcome) {
+          keyState.current = { ...NEUTRAL };
+          setMode('paused');
+          announce(result.state.reason);
+          commit(result.state);
+          return;
+        }
+      }
+      else accumulator = 0;
+      if (now - lastPaint >= 29 && lastPainted !== authoritative.current) {
+        lastPaint = now;
+        lastPainted = authoritative.current;
+        setState(lastPainted);
+      }
+      frame = requestAnimationFrame(tick);
+    }
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    window.addEventListener('blur', reset);
+    document.addEventListener('focusin', focus);
+    document.addEventListener('visibilitychange', reset);
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', reset);
+      document.removeEventListener('focusin', focus);
+      document.removeEventListener('visibilitychange', reset);
+    };
+  }, [stage, mode]);
 
-  return (
-    <main className="app-shell">
-      {/* Header */}
-      <header className="header">
-        <div className="header-top-row">
-          <div>
-            <p className="kicker">NASA Space Apps Challenge 2026 · Challenge 13: Space Mission Design Game</p>
-            <h1>APOGEE: MARS ROVER ARCHITECT</h1>
-          </div>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => setShow3DScene(!show3DScene)}
-            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-          >
-            {show3DScene ? '▲ Hide 3D Mission Control' : '▼ Show 3D Mission Control'}
-          </button>
-        </div>
-        <p className="note">
-          Systems Engineering Simulator: Balance limited budget ($M), rocket payload mass (kg), battery power (⚡), comms bandwidth, and launch Delta-v (m/s).
-        </p>
+  function select(id: MissionId) {
+    setMissionId(id);
+    setLoadout(DEFAULT_LOADOUT);
+    setStage('hangar');
+  }
+  async function deploy() {
+    if (busy.current || preflight(missionId, loadout).length) return;
+    busy.current = true;
+    commit(getInitialState(missionId, loadout));
+    setRoute([]);
+    setMode('planning');
+    setLog(['Rover deployed. Plot your first waypoint.']);
+    setStage('deploy');
+    await wait(reduceMotion() ? 70 : 760);
+    busy.current = false;
+    setStage('operations');
+  }
+  async function act(action: StationaryAction) {
+    if (busy.current) return;
+    const current = authoritative.current;
+    const next = performScienceAction(current, action);
+    if (next.elapsed > current.elapsed) {
+      busy.current = true;
+      keyState.current = { ...NEUTRAL };
+      setEffect(action.type);
+      await wait(reduceMotion() ? 40 : action.type === 'recharge' ? 900 : 530);
+      setEffect(null);
+      busy.current = false;
+    }
+    commit(next);
+    announce(next.reason);
+  }
+  function swap(id: ModuleId) {
+    if (busy.current) return;
+    const next = swapAtLander(authoritative.current, id);
+    commit(next);
+    announce(next.reason);
+  }
+  function report() {
+    if (busy.current) return;
+    const current = haltDrive(authoritative.current);
+    commit({ ...current, outcome: evaluateMission(current) });
+    setStage('report');
+  }
 
-        {/* Phase Stepper Navigation */}
-        <nav className="stepper-nav" aria-label="Mission Lifecycle Stepper">
-          {steps.map(s => {
-            const isActive = state.phase === s.phase || (s.phase === 'preflight' && state.phase === 'launch');
-            return (
-              <button
-                key={s.phase}
-                type="button"
-                className={`step-item ${isActive ? 'active' : ''}`}
-                onClick={() => send({ type: 'SET_PHASE', phase: s.phase })}
-              >
-                <span className="step-num">{s.stepNumber}</span>
-                <span>{s.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </header>
-
-      {/* Main Workspace */}
-      <div className="workspace">
-        <section className="panel main-panel">
-          {/* 3D Mission Control Room Diorama (Earth Phases) */}
-          {show3DScene && state.phase !== 'operations' && (
-            <div className="scene-container">
-              <MissionScene state={state} onStationClick={setStation} />
-            </div>
-          )}
-
-          {/* Phase 1: PLAN (Briefing & Landing Site Selection) */}
-          {state.phase === 'briefing' && (
-            <BriefingView state={state} send={send} />
-          )}
-
-          {/* Phase 2: DESIGN (Rover Hardware & Lander Depot Spares) */}
-          {state.phase === 'design' && (
-            <DesignView state={state} send={send} />
-          )}
-
-          {/* Phase 3: DECIDE & PREFLIGHT (Launcher selection & Tsiolkovsky feasibility) */}
-          {(state.phase === 'preflight' || state.phase === 'launch') && (
-            <PreflightLaunchView state={state} send={send} isPreflightOnly={state.phase === 'preflight'} />
-          )}
-
-          {/* Phase 4: SIMULATE (Interactive Tactical Mars Grid & Field Controls) */}
-          {state.phase === 'operations' && (
-            <OperationsView state={state} send={send} />
-          )}
-
-          {/* Phase 5: DEBRIEF (Outcome Evaluation) */}
-          {state.phase === 'debrief' && (
-            <DebriefView state={state} send={send} />
-          )}
-        </section>
-
-        {/* Sidebar Telemetry & Resource Margins */}
-        <ResourcesPanel state={state} send={send} />
-      </div>
+  return <>
+    <StageBar stage={stage} />
+    <main ref={main} tabIndex={-1} className={stage === 'operations' ? 'shell shell-ops' : 'shell'}>
+      {stage === 'select' && <MissionSelect onSelect={select} />}
+      {stage === 'hangar' && <Hangar mission={mission} loadout={loadout} onChange={setLoadout} onBack={() => setStage('select')} onNext={() => setStage('preflight')}
+        scene={<Suspense fallback={<div className="map-fallback">Loading rover…</div>}><HangarScene loadout={loadout} /></Suspense>} />}
+      {stage === 'preflight' && <Preflight mission={mission} loadout={loadout} onBack={() => setStage('hangar')} deploy={deploy} />}
+      {stage === 'deploy' && <div className="deploy-view" role="status"><div className="deploy-radar"><Icon name="crosshair" size={54} /></div>
+        <p className="eyebrow">MARS SURFACE LINK</p><h1>Deploying rover</h1><p>{mission.number} / {mission.name}</p></div>}
+      {stage === 'operations' && <Operations state={state} route={route} setRoute={setRoute} mode={mode} setMode={changeMode} act={act}
+        effect={effect} swap={swap} report={report} log={log} />}
+      {stage === 'report' && <Debrief state={state} retry={() => setStage('hangar')} home={() => setStage('select')} next={() => select('dune-crossing')} />}
     </main>
-  );
+    <footer className="footer"><span>APOGEE <b>/</b> MS CHUNG · SPACE APPS 2026</span><a href="https://science.nasa.gov/mars/facts/" target="_blank" rel="noreferrer">NASA Mars Facts <Icon name="arrow" size={14} /></a></footer>
+  </>;
 }
