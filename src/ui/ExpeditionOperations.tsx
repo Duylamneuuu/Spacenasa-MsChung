@@ -199,7 +199,7 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
     if (k === 'm') { e.preventDefault(); setTactical(v => !v); return; }
     if (k === 'h') { e.preventDefault(); if (guide) skipTour(); else showTour(); return; }
     if (k === 'escape') { if (tactical) setTactical(false); else if (garage) setGarage(false); else if (driving) setMode('paused'); return; }
-    if (k === 'enter' && !(tgt instanceof HTMLButtonElement)) {
+    if (k === 'enter' && !tactical && !garage && !(tgt instanceof HTMLButtonElement) && !(tgt instanceof Element && tgt.closest('[role="dialog"]'))) {
       if (guide && step.ack) { e.preventDefault(); setAcked(s => new Set(s).add(step.id)); return; }
       if (!ended && !effect) { e.preventDefault(); setMode(driving ? 'paused' : 'driving'); }
     }

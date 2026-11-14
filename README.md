@@ -2,7 +2,9 @@
 
 **NASA Space Apps Challenge 2026 · Team MS Chung**
 
-> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
+> **Play now: https://apogee-mars-rover.vercel.app/** (built from `main`; desktop keyboard). English by default, Vietnamese via the **EN / VI** switch or `?lang=vi`.
+>
+> **Plan & Drive:** click waypoints to get a battery/time/risk estimate, press **Start drive**, then steer yourself with **W/S** and **A/D** (**Space** brakes). The route is guidance, not autopilot. Field actions: **Q** scan, **F** analyze, **T** transmit, **R** recharge, **M** tactical map, **H** tutorial, **Esc** pause. Mission 01 opens with a step-by-step tutorial.
 
 
 > [!TIP]
