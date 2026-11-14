@@ -1,58 +1,44 @@
-# APOGEE — approved concept (14 November 2026)
+# APOGEE — Gameplay Concept v2 (Plan & Drive)
 
-> The old cutaway Mission Control / scripted choices / lunar orbiter concept is **superseded**. Read [the complete GDD](APOGEE_GDD.md).
+> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
 
-## Elevator pitch
 
-**Design a Mars rover. Plan a science expedition. Watch your engineering decisions come alive.** The rover travels in a Three.js isometric Mars map where hard plains, sand, sharp rocks, slopes and shadowed canyons change the safest and most energy-efficient route.
+## Why this design
+Players design a Mars rover under budget and mass limits, then choose routes between real educational science objectives. Their plan sets expectations; their **hands-on driving** produces consequences. This combines mission engineering trade-offs with enjoyable game feel.
 
-This is a **mission-design / trade-off simulator**, not a collectibles-selling game or a visual-novel choice menu.
+## Two control modes
+- **PLANNING MODE**: orthographic/isometric tactical map. Click waypoints, Undo/Clear, select target sites. Estimated battery/time/risk and known/unknown hazards appear. Choose sandy shortcut or long rocky detour.
+- **DRIVING MODE**: press **START DRIVE**, follow the 3D highlighted route with manual W/S forward/reverse and A/D steering. Third-person rover camera, optional minimap, live actual telemetry. Rover never auto-navigates. Pause/Replan can rebuild the route from the current rover position.
 
-## Distinctive mechanics
+The estimate assumes a route; manual deviations or varying speed change actual time, exposure, energy and risk. Planned costs must not be charged upfront.
 
-1. **Mission Select** — missions reuse one Mars map and emphasize different terrain trade-offs.
-2. **Earth Hangar** — three wheel variants and a compact sensor/science loadout; budget + deployed-payload mass caps. Preloaded spares remain part of total mass.
-3. **Route planning** — click one or more waypoints, optionally add science tasks, inspect estimated energy, time and risk, then **Execute**; rover animates continuously. No WASD primary loop, no tile-by-tile move button.
-4. **Terrain Scanner** — investigate unknown terrain with imperfect information; a gameplay abstraction inspired by navigation cameras, not ground-penetrating radar claiming perfect detection.
-5. **Battery + solar charging** — movement, scanning, sampling and transmission cost energy; stopping in light costs time but recharges. Darkness/shadow affects solar yield.
-6. **Science Score + fictional RC** — analysis collects science data; **successful transmit** grants Research Credits; first discovery rewards only once.
-7. **Lander Garage** — return to swap only spares carried in the deployed cargo; no orbital supply drops or on-site manufacturing.
-8. **Debrief** — show science, energy, time, risk, chosen loadout and reasons, encouraging alternate routes and wheel builds.
+## Systems
+- **Mars environments on one map**: hard rock, soft sand, sharp rocks (P0); slope/crater and shadow (P1).
+- **Three wheels**: light (hard efficient), wide traction (sand efficient), reinforced (rock durable). Each has cost and mass trade-offs; no universal best wheel.
+- **Battery/solar**: driving and science use energy. Charging takes time and requires stopping in sunlight. No energy pickups.
+- **Terrain Scanner**: partial and uncertain nav hazard information, not perfect GPR.
+- **Science Score & fictional Research Credits**: only newly transmitted discoveries award RC, once per site. RC unlocks modules already carried.
+- **Lander Garage**: swap only preloaded modules; payload mass includes spares, rover, lander and support.
+- **Outcomes**: Full, Partial, Failure. Show planned-vs-actual telemetry and explain what choices mattered.
 
-## Terrain and wheel trade-off (game-balance draft, NOT NASA data)
-
-| Wheel | Hard | Soft sand | Sharp rocks | Slope | Why use it? |
-|---|---:|---:|---:|---:|---|
-| W1 light | 0.80× | 1.80× | 1.60× | 1.40× | Quick, light; detours on easy terrain |
-| W2 wide traction | 1.25× | 0.85× | 1.25× | 1.10× | Crosses sandy shortcuts |
-| W3 reinforced | 1.15× | 1.30× | 0.75× | 1.00× | Survives rough, rocky routes |
-
-**Formula draft:** MOVE_ENERGY = BASE_DISTANCE_COST × TERRAIN_FACTOR × WHEEL_FACTOR × LOAD_FACTOR; do not double-count slope. Distances and equipment mass are simulated separately from the creative tuning multipliers. None of the wheels has zero risk.
-
-## One Mars map, multiple missions
-
-| Mission | Goal | MVP? |
+## Missions / priority
+| Mission | Role | Priority |
 |---|---|---|
-| 01 First Survey | Transmit analyses from two nearby science sites | **Required** |
-| 02 The Dune Crossing | Collect data across sandy terrain; detour vs shortcut | **Required; main showcase** |
-| 03 Into the Crater | Slopes, sharp rocks, limited sunlight | **Stretch only** |
+| 01 First Survey | Tutorial for Plan → Drive, sample, scan, solar and transmit | P0 |
+| 02 The Dune Crossing | Sand shortcut vs hard detour, at least two winning approaches | P0 showcase |
+| 03 Into the Crater | Slope/rock/shadow resources | P1 |
 
-**P0 environments:** hard, soft sand, sharp rocks. **P1:** slope/crater and shadowed canyon. Use one grid/graph + one isometric scene; do not create separate worlds.
+## Initial educational balance, not NASA measurements
+| Wheels | Hard | Sand | Sharp rocks | Slope |
+|---|---:|---:|---:|---:|
+| Light | 0.80× | 1.80× | 1.60× | 1.40× |
+| Wide traction | 1.25× | 0.85× | 1.25× | 1.10× |
+| Reinforced | 1.15× | 1.30× | 0.75× | 1.00× |
 
-## Core power loop
+Route estimate = sum of segment distance × terrain/wheel/load factors; actual energy = integrated distance traveled through sampled terrain with the same central cost model. Avoid slope double count, frame-rate-based drains or dual physics ownership.
 
-- Battery 0–100 **EU**; solar-only charging for MVP.
-- MOVE, SCAN, ANALYZE, TRANSMIT consume EU; RECHARGE requires stopping in light with time advancing.
-- Example **mock** tuning: MOVE baseline 5 EU per standard segment, SCAN 6, ANALYZE 12, TRANSMIT 6, recharge +8 EU / 10 minutes in good light; warn below 15 EU reserve. Values require game balance testing, not NASA citations.
-- Risk/preview for unknown terrain must show uncertainty; safe-stop and replan on unplanned hazards.
+**All gameplay text is in English.** Developer docs may be bilingual. Explain that direct WASD control is a pedagogical interface, not instantaneous Earth-to-Mars joystick control.
 
-## Restrictions / scientific framing
+**Cut:** rockets/orbits/delta-v, multi-planet content, scripted quiz-choice core, autopilot Plan & Execute, ISRU crafting, supply pods, open-world sprawl and heavyweight vehicle physics.
 
-- **P0:** 3 wheels, 3 terrain types, 2 missions, route preview & Execute, battery/solar, basic scanner, science/credits, lander swap, report.
-- **P1:** extra terrains, improved scanner, mission 03, polish / extra assets.
-- **Cut:** rocket/launch selection, trajectories, Δv, physical landing model, WASD, endless farming, complex crafting/ISRU, orbital supply capsules, multiple planetary bodies, full suspension physics, large procedural maps and elaborate comms.
-- **No fabricated NASA data.** Real sources with URLs/units/provenance belong in Sơn's source notes; balance data marked MOCK.
-
-**User demo target:** a 3–5 minute playthrough showing **two plausible engineering solutions**, not one prescribed perfect strategy.
-
-[Full GDD](APOGEE_GDD.md) · [Handoff](IMPLEMENTATION_HANDOFF.md) · [Data](CONTENT_DATA.md)
+[Approved GDD](APOGEE_GDD.md) · [Interfaces](INTERFACES.md) · [Work prompt](WORK_MASTER_PROMPT.md).
