@@ -4,11 +4,11 @@
 
 | Owner | Folder / files | Deliverable |
 |---|---|---|
-| Product/UI lead (integrator) | `src/App.tsx`, `src/ui/`, `src/styles/`, `src/types/` | Mission screen, visible metrics, event/decision panels, final integration and browser demo |
-| 3D/gameplay builder | `src/scene/`, low-poly visuals | One performant Three.js cutaway room, clickable stations, visual reactions to game state, one launch transition |
-| Simulation/data builder | `src/sim/`, `src/data/`, tests | Deterministic resource tradeoffs, event effects, feasibility evaluation, success/failure result |
-| Aerospace student | `docs/science/` and reviewed data notes | Credible NASA/JPL sources and units, validation of simplifications, explanation/technical Q&A |
-| Game-design student | `docs/design/`, approved assets, pitch content | Player journey, 2–3 choice events, diagram / icon kit, usability, concise slides and demo script |
+| **Duy — Product/UI lead (integrator)** | `src/App.tsx`, `src/ui/`, `src/styles/`, `src/types/` | Mission screen, visible metrics, event/decision panels, final integration and browser demo |
+| **Bảo — Three.js / 3D builder** | `src/scene/`, low-poly visuals | One performant Three.js cutaway room, clickable stations, visual reactions to game state, one launch transition |
+| **Hải — Simulation/data builder** | `src/sim/`, `src/data/`, tests | Deterministic resource tradeoffs, event effects, feasibility evaluation, success/failure result |
+| **Sơn (HUST) — Aerospace/science lead** | `docs/science/` and reviewed data notes | Credible NASA/JPL sources and units, validation of simplifications, explanation/technical Q&A |
+| **Cường (PTIT) — Game designer** | `docs/design/`, approved assets, pitch content | Player journey, 2–3 choice events, diagram / icon kit, usability, concise slides and demo script |
 
 If the game-design student is not a coder, do **not** assign them ownership of gameplay code or complicated 3D engine integration.
 
