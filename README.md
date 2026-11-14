@@ -27,6 +27,16 @@ NASA Space Apps Challenge 2026 · **Challenge 13: Space Mission Design Game**.
 
 ## Team workflow
 
+### Team MS Chung
+
+| Member | Responsibility | Working branch |
+|---|---|---|
+| **Duy** | Product Lead, UI/UX, frontend integration | `feat/ui` |
+| **Bảo** | Three.js 2.5D scene, visual interactions, 3D assets/animation | `feat/scene` |
+| **Hải** | Simulation engine, NASA data integration, tests | `feat/simulation` |
+| **Sơn (HUST)** | Aerospace/science reviewer, NASA sources, scientific validation | Science documentation / review |
+| **Cường (PTIT)** | Game design, visual assets, event flow, pitch materials | Design documentation / assets |
+
 - **One repository, one application.**
 - Integrator owns `src/App.tsx`, app entrypoints, styles and dependency changes.
 - Scene/gameplay contributor owns `src/scene/`, animation, 3D assets.
