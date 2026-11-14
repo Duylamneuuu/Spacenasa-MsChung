@@ -1,57 +1,33 @@
-# APOGEE — integration handoff for the four workstreams
+# APOGEE — Implementation handoff v2 (Plan & Drive)
 
-**Status:** Implementation instructions for the [agreed GDD](APOGEE_GDD.md). The repository's existing React app and Three.js scene remain **legacy placeholders** until contributors implement the rover game.
+> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
 
-## Golden path (the first shared vertical slice)
 
-1. Duy ships **Mission 02 title + a Planning/Execute UI** using mock state.
-2. Bảo ships **one Mars terrain with 2 clear routes, a rover and clickable waypoints**.
-3. Hải ships **pure route preview + deterministic execute** with battery/time costs and 2 wheel variants at first; expand to 3 variants after integration.
-4. Sơn ships **terrain/wheel rule records and source notes**, marking MOCK vs NASA-supported.
-5. Cường ships **Mission 01/02 objectives, tutorial text, 3 science sites and a low-poly prop list**.
-6. Duy wires route preview → Execute → animated rover → results; re-check npm run build **before** extras.
+## Reality check
+Latest observed repo has a large gameplay commit with manual WASD rover controls already in `src/scene/MarsOpenWorld.tsx` and `src/ui/OperationsView.tsx`. Do not waste time rebuilding controls or describing it as blank scaffold. **But** the approved pre-drive route planner does not exist yet; rocket/delta-v/ISRU logic and some Vietnamese runtime strings remain. First audit exact current HEAD, then reuse functioning parts and reconcile.
 
-Once the slice runs, add the 3rd wheel, garage/spares, research credits and second mission fully. Do **not** wait for perfect artwork or the entire NASA dataset to integrate.
+## Golden vertical slice to build NOW
+1. **Duy UI**: add Planning Mode overlay above Mars world, click-waypoint route creation, Undo/Clear, estimated battery/time/risk, **START DRIVE** / Pause / Replan. Present English-only player-facing copy.
+2. **Bảo scene**: expose two camera modes (planning isometric, driving chase), route line + next-waypoint guidance; keep existing WASD/chase model if viable. Do not move rover automatically on Start Drive. Ensure GLB/GLTF adapter + placeholder.
+3. **Hải sim**: single pure deterministic per-tick rover pose/terrain/time/battery cost model. Preview traverses planned path. Actual gameplay consumes along actual WASD movement; never double-charge in 3D and state. Tests for route deviations.
+4. **Sơn data**: three terrain types, three wheel coefficients, solar source assumptions and NASA citations; clear tags GAME BALANCE vs verified.
+5. **Cường missions**: Mission 01 tutorial + Mission 02 sand crossing with two routes; only English player-facing labels/tutorials and science descriptions.
+6. **Duy integrates**: in 3–5 minutes show plan route → estimate → Start Drive → WASD → deviation changes battery → analyze/transmit → report/retry.
 
-## P0 file contracts (proposals; freeze together)
+## P0 done when
+- Start Drive alone does not move rover; W/S throttle & reverse, A/D steer; focus/blur handling correct.
+- Path is an overlay or in-world navigation guidance, not autopilot. Pause/Replan from current position.
+- Estimated vs actual energy/time/risk have honest labels and are consistent at equal conditions.
+- Each of 3 wheels has measurable effect on both route choices; at least two strategies finish Mission 02.
+- Battery/solar, science/RC, preflight mass+budget, lander spares and report work with one authority.
+- Both missions play through; no rocket selection, ISRU, infinite mining, orbital pods.
+- **All visible game content is English**: menus, logs, errors, ARIA, tooltips, tutorial, mission data and report.
+- Production build, keyboard browser walkthrough and deterministic tests pass.
 
-| Owner | Path | Required export / contract |
-|---|---|---|
-| Duy | src/types/game.ts | MissionState, MissionConfig, TerrainKind, WheelId, Waypoint, PlannedAction, preview and execute result types |
-| Duy | src/App.tsx / src/ui/ | State controller, mission setup, loadout, route planner, energy/time/risk HUD, execute controls, garage and report |
-| Bảo | src/scene/MissionScene.tsx | <MissionScene state onWaypointClick onSiteClick> rendering only, no energy/math mutations |
-| Hải | src/sim/ | getInitialState(missionId), previewPlan(state, plan), executePlan(state, plan), evaluateMission(state), plus tests |
-| Sơn | src/data/ | Mission terrain graph, wheel balance data, module costs/masses/solar rules, provenance and uncertainty |
-| Cường | src/content/ | Mission 01/02/03 definitions, science sites, tutorial, goal/score text, results copy |
+## P1 if time
+Additional slopes/shadow, Mission 03, richer low-poly materials, dust/scan FX, polished model import.
 
-**Contract rule:** there must be a single authoritative source for energy/time/mass calculations (Hải's simulation). UI reads computed preview; Bảo animates returned movement events. **Nothing in scene changes mission resources.** Editing shared types requires agreement with Duy.
+## Collaboration
+**Do not directly reset other workstream branches, overwrite unreviewed team code, or merge with a blind force push.** Duy coordinates `src/types/game.ts`; Bảo scene, Hải sim, Sơn data, Cường content. Make a new integration branch from main with small PRs.
 
-## Behavioral acceptance / edge cases
-
-- Choosing a **short sandy route** vs a **long hard-terrain detour** gives different previews and different outcomes.
-- W1 vs W2 vs W3 makes measurable differences for one fixed route; at least two different routes can succeed.
-- Preflight mass includes lander, installed modules and spare modules.
-- Sim preview/execute use the same deterministic cost function; prevent negative or over-capacity battery via explicit failure/stop behavior.
-- An unknown segment has an uncertain preview; SCAN reveals more information, not magical perfect knowledge.
-- Solar recharge consumes **time**, requires adequate illumination and never exceeds battery capacity.
-- Analyze creates data to transmit. **RC is granted once per unique successfully transmitted science discovery**, not each time the same tile is scanned.
-- Swaps only at lander and only from on-board spare inventory; carrying spares increases deployed mass.
-- Execute has an unambiguous termination, safe stop or failure with a clear message; Reset/retry works.
-- Simulation never imports React/Three.js. Rendering uses stable, typed callbacks. No silent random effects.
-- A production build succeeds and the demo is playable by someone unfamiliar with the project.
-
-## Demo sequence (3–5 min)
-
-**Mission 02 The Dune Crossing:** design light rover → inspect sandy shortcut and hard-ground detour → preview energy/time/risk → scan → pick a route → Execute → analyze a site → transmit data → receive Science Score / RC → debrief → show another wheel's different trade-off.
-
-## Team branches / no-conflict policy
-
-- Duy: feat/ui; Bảo: feat/scene; Hải: feat/simulation; Sơn+Cường: feat/content-data but distinct folders.
-- Start from the refreshed branches, pull first and make small PRs into main.
-- Ship mock contracts with strong labels as needed for early integration; science lead substitutes verified values before the final submission.
-- Existing src/types/game.ts, src/sim/engine.ts, src/scene/MissionScene.tsx are **old wiring scaffolds**, not yet the new APIs described here. Duy should land a typed contract PR first so teammates do not build incompatible versions.
-
-## Project links
-
-- [Master GDD](APOGEE_GDD.md) · [Concept](CONCEPT.md) · [Team plan](TEAM_PLAN.md) · [Science/content handoff](CONTENT_DATA.md)
-- [Shared Google Doc](https://docs.google.com/document/d/1V2svKyaGYkj_hA6f7MTabp8gnvi-QhEMNVChFwML8yE/edit)
+[Approved GDD](APOGEE_GDD.md) · [Interfaces](INTERFACES.md) · [Work master prompt](WORK_MASTER_PROMPT.md).

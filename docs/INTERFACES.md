@@ -1,60 +1,51 @@
-# APOGEE — proposed interfaces v1 (not yet implemented)
+# APOGEE — Integration contract v2: Plan & Drive (target, not a claim of implementation)
 
-> **Critical:** The code under src/types/game.ts, src/sim/engine.ts and src/scene/MissionScene.tsx still describes the **legacy scaffold**, not the types below. Duy must coordinate a typed migration before Bảo/Hải write dependent imports. Do not blindly treat this document as executable code.
+> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
 
-## Ownership of the contract
 
-- **Sơn**: input datasets and provenance (src/data/). No runtime rules.
-- **Cường**: mission objectives, learning text and sites (src/content/). No physics.
-- **Hải**: pure TypeScript preview and execution (src/sim/). No React/Three.js.
-- **Bảo**: 3D Mars map and rover animation (src/scene/). No energy/resource mutations.
-- **Duy**: shared src/types/game.ts and UI/controller integration.
+## Current code caveat
+Latest main already has `MarsOpenWorld`, `Mars3DRover`, `OperationsView` and roverEngine with manual WASD controls, plus legacy rocket/ISRU/tile rules and Vietnamese runtime messages. **Audit code at HEAD** before changing any API; do not build a competing engine and do not overwrite fresh teammate work. This file is the TARGET contract only; actual `src/types/game.ts` may still differ.
 
-## Canonical conceptual entities (target)
+## Modes, data and events
+| Type | Fields / role |
+|---|---|
+| `ControlMode` | `'planning' \| 'driving' \| 'paused'` |
+| `DrivingInput` | `forward, reverse, steerLeft, steerRight, brake?` (held-key state) |
+| `RoverPose` | `x, z, headingRadians, speedMetersPerSecond` |
+| `TerrainSample` | terrainId, groundType, slope, illumination, hazardEstimate |
+| `Waypoint` | id, x, z, targetScienceSiteId? |
+| `PlannedRoute` | waypoint IDs/coordinates, creation from current rover pose |
+| `RouteEstimate` | expectedBatteryEU, expectedMinutes, riskBand, uncertainty, warnings, assumptions |
+| `DriveStepResult` | newPose, traveledMeters, timeDelta, energyDelta, terrain, hazards, nextMissionState |
+| `MissionState` | mode/phase, missionId, roverPose, batteryEU, elapsedMinutes, loadout/inventory, scientific records, score/RC/outcome |
 
-| Entity | Required fields | Owner |
-|---|---|---|
-| MissionConfig | missionId, target site IDs, budget limit, mass cap, time limit, selected terrain/graph, reward policy | Sơn numeric input + Cường objectives |
-| TerrainTile | id, position, terrain kind, elevation/slope, sunlight factor, discovered flag | Sơn input |
-| WheelConfig | id (light / wide / reinforced), massKg, costCredits, terrain multipliers, risk factors | Sơn game balance, reviewed by Hải |
-| RoverLoadout | installed IDs, spare IDs, base mass, battery capacity, scanner ID | Duy/ Hải with data from Sơn |
-| MissionState | phase, mission ID, rover position, batteryEU, elapsedMinutes, discovered terrain, stored science results, delivered science, scienceScore, researchCredits, selected loadout, outcome | Duy shared types |
-| Waypoint | x, z or tile ID, stable position, optional site reference | Bảo emits, Hải consumes |
-| PlannedAction | MOVE(waypoint), SCAN, ANALYZE(siteId), TRANSMIT | Duy defines; Hải processes |
-| PlanPreview | estimatedEnergyEU, estimatedMinutes, riskBand, uncertainty, warnings, feasible | Hải |
-| ExecuteResult | next MissionState, ordered movement/scan/transmit events, stopReason, errors | Hải, consumed by Bảo + Duy |
+## Logic ownership
+- **Hải / pure sim** owns deterministic movement integration, actual x/z terrain sampling, battery/time/risk calculations, science/RC and success rules.
+- **Bảo / scene** presents current rover pose, planned route, effects and cameras; emits ground clicks/inputs (no direct resource mutation).
+- **Duy / UI** owns Planning/Drive mode, focus-safe keyboard dispatch, scene/controller bindings, HUD, garage and report; coordinates shared types.
+- **Sơn** owns sources & numeric terrain/module data, **Cường** owns mission/site/tutorial content and English copy.
 
-**No WASD, no instant-click movement** in primary gameplay. A plan contains clicked waypoints and optional science actions; the Execute button triggers a deterministic simulation and Bảo animates the resulting ordered events. Logic may work on a grid/graph while the scene interpolates continuous 3D movement.
+## Proposed APIs (name/signature subject to typed implementation PR)
+```ts
+getInitialState(missionId): MissionState
+previewRoute(state, route, missionData): RouteEstimate
+stepDrive(state, input: DrivingInput, deltaSeconds, terrainData): DriveStepResult
+performScienceAction(state, action, missionData): MissionState
+evaluateMission(state, missionData): MissionEvaluation
 
-## Target API (to implement in the first integration PR)
+MarsScene({ state, controlMode, plannedRoute, onWaypointClick, onDrivingInput })
+```
 
-    getInitialState(missionId): MissionState
-    previewPlan(state, plannedActions, missionData): PlanPreview
-    executePlan(state, plannedActions, missionData): ExecuteResult
-    evaluateMission(state, missionData): MissionEvaluation
+**Absolute invariant:** Pressing START DRIVE switches modes and does **not** move the rover. Only player input advances it. Guidance is visual, non-binding and can be deviated from. Actual consumption depends on actual position. Preview uses same base rules but is an estimate. Pausing/replanning preserves physical pose. No teleport or double-drain.
 
-    MissionScene({ state, plannedRoute, executionEvents, onWaypointClick, onSiteClick })
+## Operational invariants / tests
+- W/S forward/reverse, A/D steering. Ignore gameplay WASD while entering text, viewing modal or planning; release input on blur. Clamp deltaTime/fix step for reproducibility.
+- Sampling terrain from actual rover x/z; collision/terrain boundary and sensible stuck or rescue outcomes.
+- Wheel tradeoffs and route choices change energy/time/risk. No 0% hazards promised.
+- Solar charges only when stopped with enough light, time must pass. Battery bounded in [0,max].
+- Mission garage only spares in deployed mass. SCAN uncertain, ANALYZE data, TRANSMIT rewards once.
+- English-only player UI **including internal log messages used in screens** and ARIA labels.
+- No literal NASA remote real-time control claim.
+- Actual code changes must go through isolated reviewable PR after reading workstream branches.
 
-The above are **interface shapes**, not presently exported functions. Duy owns names, final TypeScript signatures and any compatibility adapter to the old scaffold. Keep UI and 3D working with mock data until the new contract lands.
-
-## Rules not to violate
-
-1. **Total deployed payload mass** includes lander, installed rover modules, spare modules and support equipment. Inventory isn't free.
-2. **Power**: single battery scale (EU); solar recovery consumes minutes and depends on light. Source-data physical units and game EU are distinguished.
-3. **Route cost**: BASE_DISTANCE_COST × TERRAIN_FACTOR × WHEEL_FACTOR × LOAD_FACTOR. Avoid slope factor duplication; handle each traversed segment. Unknown paths produce estimates/ranges, not perfect foresight.
-4. **Three wheel IDs**: light, wide and reinforced. Game-balance coefficients are in [CONCEPT.md](CONCEPT.md), not NASA measurements.
-5. **Scanner**: discloses nearby terrain/hazard estimates; cannot reveal 100% of hidden hazards. Not the same as RIMFAX underground geologic radar.
-6. **Science/RC**: ANALYZE stores data; only TRANSMIT converts eligible new transmitted discoveries to fictional RC. Science Score is cumulative and not depleted by upgrades.
-7. **Garage**: change module only at lander and only if spare is in inventory. RC gates upgrades but is not physical supply from Earth.
-8. **Success**: required science returned within time and functioning rover; partial and failure paths must be explainable and reproducible.
-9. **Content IDs**: never key rules by display string or translated text. Use stable mission/site/module identifiers and schemas.
-10. **Tests**: same initial state + same actions + same map = same result. No unseeded hidden randomness.
-
-## Migration order
-
-1. Duy approves shared ID conventions, type definitions and this contract; commits src/types/game.ts.
-2. Hải implements pure engine functions with mocks; Bảo adapts scene props to typed callbacks; Sơn/Cường supply data and copy.
-3. Duy wires into src/App.tsx and checks build, two-route demo and critical failure path.
-4. Replace placeholders with reviewed NASA references and label simulation approximations.
-
-For the exact approved game loop and scope see [APOGEE GDD](APOGEE_GDD.md).
+[Master GDD](APOGEE_GDD.md) · [Implementation handoff](IMPLEMENTATION_HANDOFF.md).

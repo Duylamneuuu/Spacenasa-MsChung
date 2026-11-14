@@ -1,51 +1,30 @@
-# MS Chung — APOGEE execution plan (Nov 14–15, 2026)
+# Team MS Chung — APOGEE Plan & Drive scope (14–15 Nov 2026)
 
-**5 people, exactly 4 concurrent workstreams.** This supersedes the old 60-Seconds-style Mission Control plan.
+> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
 
-| Workstream | Owner | Branch | Folder / output |
-|---|---|---|---|
-| **UI / product integration** | Duy | feat/ui | src/App.tsx, src/ui/, src/styles.css, src/types/game.ts coordination; hangar, command HUD, preview, reports |
-| **3D Mars scene** | Bảo | feat/scene | src/scene/, public/assets/3d/; isometric terrain, rover, clickable waypoints, continuous Execute animation, visible wheel variants |
-| **Pure gameplay simulation** | Hải | feat/simulation | src/sim/ and tests; route/time/battery/solar/scanner science/RC, mission results |
-| **Concept + NASA data** | Sơn and Cường | feat/content-data | Sơn: src/data/, docs/science/ sources + scientific checks; Cường: src/content/, docs/design/, public/assets/ui/ missions, sites, tutorial, assets and pitch |
 
-**Sơn and Cường share feat/content-data but have separate file ownership.** Pull before push. Duy integrates contracts and merges via PR.
+## Owners / four workstreams
+| Member | Branch / ownership | New responsibility |
+|---|---|---|
+| Duy | feat/ui; App/UI/CSS + shared type coordination | English-only UI, plan/preview, START DRIVE, WASD focus, HUD, PAUSE/REPLAN, report, integration |
+| Bảo | feat/scene; src/scene/, 3D assets | Preserve useful current MarsOpenWorld/WASD, cameras, waypoint guide, rover visual, manual drive animation |
+| Hải | feat/simulation; src/sim/, tests | Deterministic `stepDrive` + `previewRoute`, actual terrain-based energy/time/risk, sun, science/RC, one authoritative state |
+| Sơn | feat/content-data; src/data/, docs/science/ | NASA citations, 3 terrains, 3 wheel balance configs, solar scientific limits, label mock numbers |
+| Cường | feat/content-data; src/content/, docs/design/, public/assets/ui/ | English player tutorials, 2 Mars missions, two-route level design, copy and pitch |
 
-## Scope priorities
+Cường/Sơn share a branch but not folders. Duy approves cross-owner API changes. Avoid editing work in progress in teammate branches.
 
-**P0 / must demo**
-- One Mars map with hard, soft-sand and sharp-rock routes.
-- 3 wheel types (light, wide, reinforced), with different energy/risk outcomes.
-- Mission 01 First Survey (tutorial) and Mission 02 Dune Crossing (short sandy shortcut vs long detour).
-- Mission selection + hangar loadout, budget and full deployed mass preflight.
-- Click waypoints → preview power/time/risk → Execute → animated rover → replan if safe-stop.
-- One battery, solar stop-and-charge, basic scanner, analyze and transmit, Science Score/fictional Research Credits.
-- Return to lander to use preloaded spares and show debrief/retry.
-- Tests, NASA attribution and limitations, browser build + demo.
+## Priority / phases
+**P0a:** Current WASD game → Planning Map/Waypoints → estimated energy/time/risk → Start Drive → guided MANUAL drive → real telemetry → study science sample → transmit → debrief.  
+**P0b:** 3 wheels, full solar/garage budget/mass logic, terrain scanner, Mission 01 tutorial, Mission 02 second route, retry and tests.  
+**P1:** crater/slope/shadow, enhanced scanner, asset polish and Mission 03.
 
-**P1 / optional after P0 complete:** slopes, shadows, enhanced scanner, Mission 03 crater, graphics polish, better visual timeline.
+**Out:** rocket/delta-v gameplay, autopilot Plan&Execute, multi-planets, click-to-move, ISRU crafting, orbital capsules and rigid-body suspension.
 
-**Out:** launch/rocket/delta-v, multiple planets, WASD, orbital pods, crafting/ISRU, full tire physics, multiple antenna models, expansive open world.
+## Integration / acceptance
+- First freeze minimal type contract (control mode, rover pose, driving input, route estimate, terrain sample, drive tick) against **current code**, not hypothetical blank scaffold.
+- Run manual keyboard/browser smoke tests: no movement on Start Drive alone, WASD changes rover, route remains visible, actual battery changes with movement, replan retains pose.
+- Probe two routes × 3 wheels, recharge, risk/failure, science credits, and English-only UI/logs.
+- Keep commits small and validate actual build; no claim of deploy until live URL tested.
 
-## Integration order (do not let four separate implementations diverge)
-
-1. **Duy + Bảo + Hải — freeze v1 types** from docs/INTERFACES.md. The current source is an old scaffold. Agree waypoint format, PlanPreview and ExecuteResult.
-2. **Cường → Duy/Bảo:** mission site locations, layout reference, player copy and low-poly essentials.
-3. **Sơn → Hải:** terrain kinds, game-balance assumptions clearly labeled as mock, NASA/JPL source list and units.
-4. **First shared vertical slice:** Mission 02, one rover, two possible routes, one Scan/Analyze/Transmit sequence.
-5. Add all 3 wheel variants; solar recharge; lander swap + RC; mission 01 tutorial; debrief.
-6. Only then extend to more environments/mission 03 if time remains.
-
-## Done / review gates
-
-- Same route + wheel setup produces same result; preview matches the executed cost model.
-- Each of two distinct routes to the same site can work with an appropriate loadout.
-- No part of UI or scene secretly changes simulation resources.
-- Payload cap includes installed + spare inventory, not just the visible rover.
-- Real NASA values are source-backed; mock multipliers are plainly disclosed.
-- Full science objective → transmit → score/RC → debrief loop works, plus failure/partial paths.
-- npm run build and manual run-through pass; UI screenshots/GIF and PR link accompany each merge.
-
-**No claim that all features are coded yet.** The checked-in app is a compilation scaffold until owner PRs land.
-
-Links: [GDD](APOGEE_GDD.md) · [Handoff](IMPLEMENTATION_HANDOFF.md) · [Interfaces](INTERFACES.md) · [Collaboration](COLLABORATION.md).
+[Approved GDD](APOGEE_GDD.md) · [Handoff](IMPLEMENTATION_HANDOFF.md).
