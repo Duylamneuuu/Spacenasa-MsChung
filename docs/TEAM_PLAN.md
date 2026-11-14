@@ -1,30 +1,24 @@
-# Team MS Chung — APOGEE Plan & Drive scope (14–15 Nov 2026)
+# Team MS Chung — APOGEE plan (14–15 Nov 2026)
 
-> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
+> **Status — 14 Nov 2026:** Plan & Drive is implemented and live at **https://apogee-mars-rover.vercel.app/** (built from `main`). English is the default and judged language; an **EN / VI** switch adds Vietnamese. Mission 01 includes a step-by-step tutorial. Code lives in `src/sim/expedition.ts`, `src/types/expedition.ts`, `src/scene/ExpeditionScene.tsx`, `src/ui/` and `src/i18n.ts`.
 
-
-## Owners / four workstreams
-| Member | Branch / ownership | New responsibility |
+## Owners
+| Member | Area | Files |
 |---|---|---|
-| Duy | feat/ui; App/UI/CSS + shared type coordination | English-only UI, plan/preview, START DRIVE, WASD focus, HUD, PAUSE/REPLAN, report, integration |
-| Bảo | feat/scene; src/scene/, 3D assets | Preserve useful current MarsOpenWorld/WASD, cameras, waypoint guide, rover visual, manual drive animation |
-| Hải | feat/simulation; src/sim/, tests | Deterministic `stepDrive` + `previewRoute`, actual terrain-based energy/time/risk, sun, science/RC, one authoritative state |
-| Sơn | feat/content-data; src/data/, docs/science/ | NASA citations, 3 terrains, 3 wheel balance configs, solar scientific limits, label mock numbers |
-| Cường | feat/content-data; src/content/, docs/design/, public/assets/ui/ | English player tutorials, 2 Mars missions, two-route level design, copy and pitch |
+| Duy | UI, integration, release | `src/App.tsx`, `src/ui/`, `src/i18n.ts` |
+| Bảo | 3D scene and rover model | `src/scene/`, `public/assets/3d/` |
+| Hải | Simulation and tests | `src/sim/expedition.ts`, `tests/` |
+| Sơn | Science sources and balance data | `src/data/expedition.ts`, `docs/science/` |
+| Cường | Missions, copy, tutorial, pitch | `src/content/expedition.ts`, `docs/design/` |
 
-Cường/Sơn share a branch but not folders. Duy approves cross-owner API changes. Avoid editing work in progress in teammate branches.
+## Done (P0)
+Plan & Drive loop, two missions, three wheels, battery and solar, scanner, science and RC, garage, preflight, debrief, tutorial, EN/VI, full-screen 3D, live deployment.
 
-## Priority / phases
-**P0a:** Current WASD game → Planning Map/Waypoints → estimated energy/time/risk → Start Drive → guided MANUAL drive → real telemetry → study science sample → transmit → debrief.  
-**P0b:** 3 wheels, full solar/garage budget/mass logic, terrain scanner, Mission 01 tutorial, Mission 02 second route, retry and tests.  
-**P1:** crater/slope/shadow, enhanced scanner, asset polish and Mission 03.
+## Next, in order
+1. Final rover GLB, dropped into `public/assets/3d/rover/` per the [import spec](MODEL_IMPORT_SPEC.md).
+2. Demo rehearsal with [DEMO_QA](design/DEMO_QA.md) on the live URL.
+3. Optional: Estimate-vs-Actual table in the Debrief, touch controls, Mission 03.
 
-**Out:** rocket/delta-v gameplay, autopilot Plan&Execute, multi-planets, click-to-move, ISRU crafting, orbital capsules and rigid-body suspension.
+**Out:** rockets and Δv, autopilot, other planets, ISRU crafting, supply pods, rigid-body physics.
 
-## Integration / acceptance
-- First freeze minimal type contract (control mode, rover pose, driving input, route estimate, terrain sample, drive tick) against **current code**, not hypothetical blank scaffold.
-- Run manual keyboard/browser smoke tests: no movement on Start Drive alone, WASD changes rover, route remains visible, actual battery changes with movement, replan retains pose.
-- Probe two routes × 3 wheels, recharge, risk/failure, science credits, and English-only UI/logs.
-- Keep commits small and validate actual build; no claim of deploy until live URL tested.
-
-[Approved GDD](APOGEE_GDD.md) · [Handoff](IMPLEMENTATION_HANDOFF.md).
+[GDD](APOGEE_GDD.md) · [Handoff](IMPLEMENTATION_HANDOFF.md)

@@ -1,51 +1,57 @@
-# APOGEE — Integration contract v2: Plan & Drive (target, not a claim of implementation)
+# APOGEE — Code contracts (as implemented)
 
-> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
+> **Status — 14 Nov 2026:** Plan & Drive is implemented and live at **https://apogee-mars-rover.vercel.app/** (built from `main`). English is the default and judged language; an **EN / VI** switch adds Vietnamese. Mission 01 includes a step-by-step tutorial. Code lives in `src/sim/expedition.ts`, `src/types/expedition.ts`, `src/scene/ExpeditionScene.tsx`, `src/ui/` and `src/i18n.ts`.
 
+## Ownership of state
+One pure TypeScript module owns every resource: **`src/sim/expedition.ts`**. The scene only draws state; the UI only displays state and sends actions. Nothing in React or Three.js changes battery, time or position directly.
 
-## Current code caveat
-Latest main already has `MarsOpenWorld`, `Mars3DRover`, `OperationsView` and roverEngine with manual WASD controls, plus legacy rocket/ISRU/tile rules and Vietnamese runtime messages. **Audit code at HEAD** before changing any API; do not build a competing engine and do not overwrite fresh teammate work. This file is the TARGET contract only; actual `src/types/game.ts` may still differ.
-
-## Modes, data and events
-| Type | Fields / role |
+## Types — `src/types/expedition.ts`
+| Type | Meaning |
 |---|---|
-| `ControlMode` | `'planning' \| 'driving' \| 'paused'` |
-| `DrivingInput` | `forward, reverse, steerLeft, steerRight, brake?` (held-key state) |
-| `RoverPose` | `x, z, headingRadians, speedMetersPerSecond` |
-| `TerrainSample` | terrainId, groundType, slope, illumination, hazardEstimate |
-| `Waypoint` | id, x, z, targetScienceSiteId? |
-| `PlannedRoute` | waypoint IDs/coordinates, creation from current rover pose |
-| `RouteEstimate` | expectedBatteryEU, expectedMinutes, riskBand, uncertainty, warnings, assumptions |
-| `DriveStepResult` | newPose, traveledMeters, timeDelta, energyDelta, terrain, hazards, nextMissionState |
-| `MissionState` | mode/phase, missionId, roverPose, batteryEU, elapsedMinutes, loadout/inventory, scientific records, score/RC/outcome |
+| `MissionId` | `first-survey` or `dune-crossing` |
+| `TerrainKind` | `hard`, `sand` or `rock` |
+| `WheelId`, `ScannerId`, `InstrumentId`, `StorageId`, `ModuleId` | Module catalogue keys |
+| `Cell` / `Waypoint` | `{ x, z }` in map cells (one cell = 4.4 m) |
+| `ControlMode` | `planning`, `driving` or `paused` |
+| `DrivingInput` | Held keys: `forward`, `reverse`, `left`, `right`, `brake` |
+| `RoverPose` | `heading` (radians, +Z forward) and `speed` (m/s); position is `MissionState.position` |
+| `StationaryAction` | `scan`, `analyze(site)`, `transmit`, `recharge(10 or 20 min)` |
+| `Loadout` | Installed wheel, scanner, instrument and storage, plus `spares` |
+| `MissionState` | Position, pose, battery, elapsed, surveyed cells, pending and delivered samples, science, credits, energy used and charged, distance, energy by terrain, safety stops, trace, reason, outcome |
+| `PlanPreview` (= `RouteEstimate`) | Per-step risk and uncertainty, energy and minutes as `[low, high]`, overall risk band, warnings, blocked reason |
+| `DriveStepResult` | Next state, sampled terrain, distance moved, `stopped` flag |
 
-## Logic ownership
-- **Hải / pure sim** owns deterministic movement integration, actual x/z terrain sampling, battery/time/risk calculations, science/RC and success rules.
-- **Bảo / scene** presents current rover pose, planned route, effects and cameras; emits ground clicks/inputs (no direct resource mutation).
-- **Duy / UI** owns Planning/Drive mode, focus-safe keyboard dispatch, scene/controller bindings, HUD, garage and report; coordinates shared types.
-- **Sơn** owns sources & numeric terrain/module data, **Cường** owns mission/site/tutorial content and English copy.
-
-## Proposed APIs (name/signature subject to typed implementation PR)
+## Engine API — `src/sim/expedition.ts`
 ```ts
-getInitialState(missionId): MissionState
-previewRoute(state, route, missionData): RouteEstimate
-stepDrive(state, input: DrivingInput, deltaSeconds, terrainData): DriveStepResult
-performScienceAction(state, action, missionData): MissionState
-evaluateMission(state, missionData): MissionEvaluation
-
-MarsScene({ state, controlMode, plannedRoute, onWaypointClick, onDrivingInput })
+getInitialState(missionId, loadout): MissionState
+payload(loadout); preflight(missionId, loadout): string[]
+previewRoute(state, route): PlanPreview
+stepDrive(state, input, seconds): DriveStepResult   // fixed step DRIVE_STEP = 1/60 s
+haltDrive(state): MissionState
+performScienceAction(state, action): MissionState
+garageStatus(state, moduleId); swapAtLander(state, moduleId)
+evaluateMission(state): 'success' | 'partial' | 'failure'
+siteAt(cell); sunlight(cell, elapsed); terrainEstimate(state, cell)
 ```
 
-**Absolute invariant:** Pressing START DRIVE switches modes and does **not** move the rover. Only player input advances it. Guidance is visual, non-binding and can be deviated from. Actual consumption depends on actual position. Preview uses same base rules but is an estimate. Pausing/replanning preserves physical pose. No teleport or double-drain.
+## Scene — `src/scene/ExpeditionScene.tsx`
+```tsx
+<ExpeditionScene state preview waypoints mode effect onPick />
+<HangarScene loadout />
+```
+Planning uses an overhead perspective camera; driving and paused modes use a chase camera. Ground clicks call `onPick` only while planning. `RoverModel` renders the procedural rover, or a GLB configured in `src/scene/roverAsset.ts` (see [MODEL_IMPORT_SPEC](MODEL_IMPORT_SPEC.md)).
 
-## Operational invariants / tests
-- W/S forward/reverse, A/D steering. Ignore gameplay WASD while entering text, viewing modal or planning; release input on blur. Clamp deltaTime/fix step for reproducibility.
-- Sampling terrain from actual rover x/z; collision/terrain boundary and sensible stuck or rescue outcomes.
-- Wheel tradeoffs and route choices change energy/time/risk. No 0% hazards promised.
-- Solar charges only when stopped with enough light, time must pass. Battery bounded in [0,max].
-- Mission garage only spares in deployed mass. SCAN uncertain, ANALYZE data, TRANSMIT rewards once.
-- English-only player UI **including internal log messages used in screens** and ARIA labels.
-- No literal NASA remote real-time control claim.
-- Actual code changes must go through isolated reviewable PR after reading workstream branches.
+## UI and language
+- `src/App.tsx`: stages (title → select → hangar → preflight → deploy → operations → report), fixed-step drive loop, held keys, release on blur.
+- `src/ui/ExpeditionOperations.tsx`: HUD, route planner, field actions, tactical map, garage, tutorial.
+- `src/ui/ExpeditionUI.tsx`: mission select, hangar, preflight, debrief, language switch.
+- `src/i18n.ts`: every player-facing key in English and Vietnamese; `tm()` translates engine messages.
 
-[Master GDD](APOGEE_GDD.md) · [Implementation handoff](IMPLEMENTATION_HANDOFF.md).
+## Invariants (tested in `tests/expedition.test.cjs`)
+- Start Drive switches mode only; the rover moves only with input. Same inputs and step give the same result.
+- Actual cost comes from terrain at the rover's real position; the estimate never charges in advance.
+- Solar charges only while stopped with enough light; battery stays within 0–100 EU.
+- Analyze requires parking near the site; RC is granted once per transmitted sample.
+- The garage installs only carried spares; spares count toward deployed mass.
+
+Legacy files (`src/types/game.ts`, `src/sim/engine.ts`, `src/sim/roverEngine.ts`, `src/scene/MarsOpenWorld.tsx`, `src/ui/OperationsView.tsx` and related) remain for reference and are not imported by the app.

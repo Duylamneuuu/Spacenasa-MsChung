@@ -1,18 +1,18 @@
-# Bàn giao tích hợp Plan & Drive
+# Plan & Drive — implementation notes
 
-- Hợp đồng chạy thực tế: `src/types/expedition.ts`. Scene nhận trạng thái, chế độ, route estimate và callback chọn waypoint; gameplay ở `src/sim/expedition.ts`; dữ liệu cân bằng ở `src/data/expedition.ts`; nội dung English ở `src/content/expedition.ts`.
-- `stepDrive` tính pose từ held keys và bước cố định; 1 ô = 4,4 đơn vị bản đồ. W/S là tốc độ có dấu, A/D đổi yaw. Chỉ quãng đường thực mới tiêu điện và thời gian hành trình; pause không dời xe. Không dùng vật lý bánh xe hoặc dữ liệu địa chất thực.
-- Rủi ro được chấm theo nền, bánh và độ biến thiên định sẵn của ô; không dùng RNG. Cảnh báo scanner vẫn là khoảng ước tính. Nội dung bản đồ, tải trọng, ngân sách, tốc độ, thời gian và các đơn vị EU/RC là giả định thiết kế.
-- Preview chỉ ước lượng di chuyển dọc các đoạn thẳng giữa waypoint, có thể khác khi cua, đi lệch hoặc tiếp cận mẫu từ phía khác. Scan, Analyze, Transmit và sạc dùng thời gian riêng khi dừng.
-- Mission 02: Wide Traction có thể đi thẳng theo hướng ban đầu. Lightweight có thể đi vòng về bắc qua các waypoint đã gợi ý. Mission 01 yêu cầu truyền hai mẫu; Standard Storage cần truyền mẫu thứ nhất trước khi phân tích mẫu thứ hai.
-- `npm ci`, `npm test`, `npm run build`. Dùng `npm run preview` để xem chính thư mục build. Có thể triển khai `dist/` như site tĩnh.
-- Model cuối: xem [MODEL_IMPORT_SPEC.md](MODEL_IMPORT_SPEC.md). Mission 03 là stretch và chưa đưa vào menu.
-## Kiểm thử đã chạy
+- Runtime contract: `src/types/expedition.ts`. The scene receives state, control mode, route estimate and a waypoint callback; rules live in `src/sim/expedition.ts`; balance data in `src/data/expedition.ts`; mission IDs and coordinates in `src/content/expedition.ts`; all player-facing text (EN and VI) in `src/i18n.ts`.
+- `stepDrive` advances the pose from held keys at a fixed 1/60 s step; one cell is 4.4 m. W/S set a signed speed, A/D change heading. Only distance actually driven costs energy and time; pausing never moves the rover. There is no tyre physics or real geology.
+- Risk comes from terrain, wheel and a fixed per-cell roughness; no RNG. The scanner narrows an estimate range.
+- The route estimate covers straight legs between waypoints and can differ when the player turns, deviates or approaches a sample from another side. Scan, Analyze, Transmit and Recharge add their own time.
+- Mission 02: Wide Traction can drive straight from the starting heading; Lightweight completes via the suggested north detour. Mission 01 needs two transmissions; with Standard Storage the first sample must be sent before analysing the second.
+- The tutorial (`tourStep` in `src/ui/ExpeditionOperations.tsx`) derives each step from game state, so it advances only after the player completes the action and cannot drift out of sync.
+- `npm ci`, `npm test`, `npm run build`; `npm run preview` serves the build. `main` deploys to Vercel automatically.
+- Final model: see [MODEL_IMPORT_SPEC.md](MODEL_IMPORT_SPEC.md). Mission 03 is not built.
 
-- Node 20 trên GitHub Actions: `npm ci`, 11 engine tests và `npm run build` đều pass.
-- Chromium: Start Drive không tự di chuyển; W không có hiệu lực khi Planning/Paused; Replan giữ nguyên vị trí; giữ và nhả phím làm tốc độ và chi phí thay đổi theo đường đi.
-- First Survey: phân tích và truyền cả hai mẫu, sạc 10 phút khi đỗ, báo cáo thành công.
-- Dune Crossing: bánh tăng bám xuyên cát và bánh nhẹ vòng về bắc đều truyền được mẫu và hoàn thành. Lái thẳng vào cát bằng bánh nhẹ kích hoạt dừng an toàn; kết thúc khi chưa có mẫu cho báo cáo thất bại.
-- Bố cục trang chọn nhiệm vụ không tràn ngang ở 320, 375, 768, 1024 và 1440 px. Điều khiển chạy xe cần bàn phím.
+## Verification
 
-Ảnh Chromium: [Chọn nhiệm vụ](evidence/select-preview.png) · [Hangar](evidence/hangar-preview.png) · [Lập tuyến 3D](evidence/planning-preview.png) · [Lái WASD](evidence/driving-preview.png) · [Mission 02](evidence/report-preview.png) · [Mission 01](evidence/first-survey-preview.png) · [Tuyến vòng](evidence/detour-preview.png) · [Thất bại](evidence/failure-preview.png).
+- Node 20 CI: `npm ci`, 11 engine tests and `npm run build` pass.
+- Chromium, keyboard, live build: Mission 01 with the Vietnamese tutorial end to end (50 / 20 RC); Mission 02 on both routes (60 / 24 RC); safety stop with light wheels in sand; Start drive without input stays still; Replan keeps position; Enter in the tactical map no longer starts the drive.
+- Not exercised in a browser: garage swap (engine tests only). No touch controls.
+
+Earlier screenshots from the PR #7 build (`58206fc`, previous UI) remain in [evidence/](evidence/) for history.
