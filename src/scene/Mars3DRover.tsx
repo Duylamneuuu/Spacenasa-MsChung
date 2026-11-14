@@ -112,36 +112,59 @@ export function AdaptiveSMAWheel({ rotation = 0 }: { rotation?: number }) {
 
 // =========================================================================
 // 2. MODULAR SENSORS & RADAR ASSETS (NavCam vs RIMFAX GPR)
+// Anchored solidly to the chassis deck surface (Y = 0.39m) with mounting flange
 // =========================================================================
 
 /**
  * NavCam: Binocular stereo optical camera head on cylindrical mast with dual eyes
+ * Bolted directly to the chassis deck with heavy-duty mounting flange and support bracket
  */
 export function NavCamSensor() {
   return (
-    <group position={[0.32, 0.65, 0.65]}>
-      {/* Cylindrical vertical mast */}
-      <mesh position={[0, 0.42, 0]} castShadow>
-        <cylinderGeometry args={[0.045, 0.05, 0.88, 12]} />
-        <meshStandardMaterial color="#cbd5e1" metalness={0.85} roughness={0.2} />
+    <group position={[0.36, 0.39, 0.62]}>
+      {/* 1. Heavy-duty deck mounting flange bolted to chassis */}
+      <mesh position={[0, 0.02, 0]} castShadow>
+        <cylinderGeometry args={[0.08, 0.10, 0.04, 16]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.3} />
       </mesh>
-      {/* Swivel neck collar */}
-      <mesh position={[0, 0.86, 0]}>
-        <cylinderGeometry args={[0.07, 0.07, 0.07, 12]} />
+      {/* Mounting collar ring */}
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.06, 0.07, 0.03, 12]} />
+        <meshStandardMaterial color="#475569" metalness={0.85} />
+      </mesh>
+
+      {/* 2. Cylindrical vertical mast extending from deck up to camera neck */}
+      <mesh position={[0, 0.48, 0]} castShadow>
+        <cylinderGeometry args={[0.042, 0.048, 0.86, 16]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.85} roughness={0.25} />
+      </mesh>
+
+      {/* 3. Diagonal structural support strut anchoring the mast to chassis */}
+      <mesh position={[0, 0.14, -0.05]} rotation={[-0.45, 0, 0]}>
+        <boxGeometry args={[0.035, 0.24, 0.025]} />
         <meshStandardMaterial color="#334155" metalness={0.9} />
       </mesh>
-      {/* Binocular stereo camera head */}
-      <mesh position={[0, 0.94, 0]} castShadow>
+
+      {/* 4. Swivel neck collar */}
+      <mesh position={[0, 0.92, 0]}>
+        <cylinderGeometry args={[0.068, 0.068, 0.06, 16]} />
+        <meshStandardMaterial color="#334155" metalness={0.9} />
+      </mesh>
+
+      {/* 5. Binocular stereo camera head */}
+      <mesh position={[0, 1.01, 0]} castShadow>
         <boxGeometry args={[0.36, 0.14, 0.18]} />
         <meshStandardMaterial color="#e2e8f0" metalness={0.7} roughness={0.3} />
       </mesh>
-      {/* Left stereo camera eye */}
-      <mesh position={[-0.1, 0.94, 0.09]} rotation={[Math.PI / 2, 0, 0]}>
+
+      {/* 6. Left stereo camera eye */}
+      <mesh position={[-0.1, 1.01, 0.09]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.042, 0.042, 0.06, 16]} />
         <meshStandardMaterial color="#0284c7" emissive="#38bdf8" emissiveIntensity={0.8} />
       </mesh>
-      {/* Right stereo camera eye */}
-      <mesh position={[0.1, 0.94, 0.09]} rotation={[Math.PI / 2, 0, 0]}>
+
+      {/* 7. Right stereo camera eye */}
+      <mesh position={[0.1, 1.01, 0.09]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.042, 0.042, 0.06, 16]} />
         <meshStandardMaterial color="#0284c7" emissive="#38bdf8" emissiveIntensity={0.8} />
       </mesh>
@@ -151,30 +174,45 @@ export function NavCamSensor() {
 
 /**
  * RIMFAX GPR: Rugged equipment box with deployable radar antenna plates under bumper
+ * Mast is bolted directly to the chassis deck with heavy-duty mounting flange
  */
 export function RimfaxGprSensor() {
   return (
     <group>
-      {/* Camera Mast with Integrated GPR Avionics Box */}
-      <group position={[0.32, 0.65, 0.65]}>
-        <mesh position={[0, 0.38, 0]} castShadow>
-          <cylinderGeometry args={[0.05, 0.055, 0.8, 12]} />
-          <meshStandardMaterial color="#71717a" metalness={0.8} />
+      {/* Camera Mast with Integrated GPR Avionics Box (Bolted to chassis deck) */}
+      <group position={[0.36, 0.39, 0.62]}>
+        {/* Heavy-duty deck mounting flange */}
+        <mesh position={[0, 0.02, 0]} castShadow>
+          <cylinderGeometry args={[0.08, 0.10, 0.04, 16]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.3} />
         </mesh>
+
+        {/* Sturdy cylindrical mast extending from deck */}
+        <mesh position={[0, 0.44, 0]} castShadow>
+          <cylinderGeometry args={[0.048, 0.052, 0.80, 16]} />
+          <meshStandardMaterial color="#27272a" metalness={0.85} />
+        </mesh>
+
+        {/* Support strut */}
+        <mesh position={[0, 0.14, -0.05]} rotation={[-0.45, 0, 0]}>
+          <boxGeometry args={[0.035, 0.24, 0.025]} />
+          <meshStandardMaterial color="#334155" metalness={0.9} />
+        </mesh>
+
         {/* Armored military-grade radar avionics box */}
-        <mesh position={[0, 0.84, 0]} castShadow>
+        <mesh position={[0, 0.90, 0]} castShadow>
           <boxGeometry args={[0.42, 0.22, 0.26]} />
           <meshStandardMaterial color="#e4e4e7" roughness={0.4} metalness={0.4} />
         </mesh>
         {/* Front diagnostic display */}
-        <mesh position={[0, 0.84, 0.135]}>
+        <mesh position={[0, 0.90, 0.135]}>
           <boxGeometry args={[0.24, 0.1, 0.01]} />
           <meshStandardMaterial color="#064e3b" emissive="#10b981" emissiveIntensity={0.9} />
         </mesh>
       </group>
 
       {/* Under-Bumper Ground Penetrating Radar Antenna Assembly */}
-      <group position={[0, -0.16, 0.86]}>
+      <group position={[0, -0.16, 0.88]}>
         {/* Central transmitter housing */}
         <mesh castShadow>
           <boxGeometry args={[0.55, 0.1, 0.18]} />
@@ -281,27 +319,28 @@ export function MmrtgNuclearPower() {
 
 /**
  * UHF Antenna: Slender vertical whip antenna with helical coil at the base
+ * Bolted directly into the rear-left chassis deck surface (Y = 0.39m)
  */
 export function UhfAntennaComms() {
   return (
-    <group position={[-0.42, 0.52, -0.42]}>
-      {/* Base mounting pedestal */}
-      <mesh position={[0, 0.05, 0]}>
-        <cylinderGeometry args={[0.06, 0.07, 0.1, 12]} />
+    <group position={[-0.42, 0.39, -0.42]}>
+      {/* Base mounting pedestal resting solidly on the deck */}
+      <mesh position={[0, 0.035, 0]}>
+        <cylinderGeometry args={[0.07, 0.09, 0.07, 16]} />
         <meshStandardMaterial color="#1e293b" metalness={0.9} />
       </mesh>
       {/* Helical coil base rings */}
-      <mesh position={[0, 0.18, 0]}>
-        <cylinderGeometry args={[0.038, 0.038, 0.16, 12]} />
+      <mesh position={[0, 0.14, 0]}>
+        <cylinderGeometry args={[0.038, 0.038, 0.14, 12]} />
         <meshStandardMaterial color="#d97706" metalness={0.95} roughness={0.2} />
       </mesh>
       {/* Slender vertical whip antenna rod */}
       <mesh position={[0, 0.68, 0]} castShadow>
-        <cylinderGeometry args={[0.014, 0.014, 0.85, 8]} />
+        <cylinderGeometry args={[0.014, 0.014, 0.94, 8]} />
         <meshStandardMaterial color="#e2e8f0" metalness={0.9} roughness={0.15} />
       </mesh>
       {/* Glowing tip indicator */}
-      <mesh position={[0, 1.12, 0]}>
+      <mesh position={[0, 1.16, 0]}>
         <sphereGeometry args={[0.038, 8, 8]} />
         <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.8} />
       </mesh>
@@ -311,27 +350,28 @@ export function UhfAntennaComms() {
 
 /**
  * High-Gain Dish: Steerable parabolic dish with tripod struts and center feed horn
+ * Bolted directly into the rear-left chassis deck surface (Y = 0.39m)
  */
 export function HighGainDishComms() {
   return (
-    <group position={[-0.38, 0.58, -0.32]} rotation={[0.32, 0.45, 0]}>
-      {/* Swivel mechanical base */}
-      <mesh position={[0, 0.08, 0]}>
-        <cylinderGeometry args={[0.08, 0.1, 0.16, 12]} />
+    <group position={[-0.38, 0.39, -0.32]} rotation={[0.32, 0.45, 0]}>
+      {/* Swivel mechanical base resting on the deck */}
+      <mesh position={[0, 0.04, 0]}>
+        <cylinderGeometry args={[0.09, 0.11, 0.08, 16]} />
         <meshStandardMaterial color="#334155" metalness={0.9} />
       </mesh>
       {/* Articulated mounting arm */}
-      <mesh position={[0, 0.22, 0]} castShadow>
+      <mesh position={[0, 0.20, 0]} castShadow>
         <cylinderGeometry args={[0.04, 0.04, 0.24, 8]} />
         <meshStandardMaterial color="#94a3b8" metalness={0.8} />
       </mesh>
       {/* Parabolic reflector dish */}
-      <mesh position={[0, 0.46, 0]} rotation={[Math.PI, 0, 0]} castShadow>
+      <mesh position={[0, 0.44, 0]} rotation={[Math.PI, 0, 0]} castShadow>
         <coneGeometry args={[0.48, 0.16, 24]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.4} />
       </mesh>
       {/* Center RF feed horn */}
-      <mesh position={[0, 0.56, 0]}>
+      <mesh position={[0, 0.54, 0]}>
         <cylinderGeometry args={[0.025, 0.025, 0.18, 8]} />
         <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.85} />
       </mesh>
@@ -432,7 +472,7 @@ export function Mars3DRover({
   };
 
   const commsMountPos: [number, number, number] =
-    commsType === 'high_gain_dish' ? [-0.38, 1.1, -0.32] : [-0.42, 1.25, -0.42];
+    commsType === 'high_gain_dish' ? [-0.38, 0.95, -0.32] : [-0.42, 1.55, -0.42];
 
   return (
     <group position={[0, chassisY, 0]}>

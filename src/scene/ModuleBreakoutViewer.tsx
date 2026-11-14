@@ -48,12 +48,12 @@ function RotatingModuleRig({ moduleId }: { moduleId: string }) {
 
       {/* 2. SENSORS & RADAR */}
       {moduleId === 'navcam' && (
-        <group position={[0, -0.9, 0]} scale={[1.8, 1.8, 1.8]}>
+        <group position={[-0.55, -0.95, -0.95]} scale={[1.6, 1.6, 1.6]}>
           <NavCamSensor />
         </group>
       )}
       {moduleId === 'rimfax_gpr' && (
-        <group position={[0, -0.6, 0]} scale={[1.7, 1.7, 1.7]}>
+        <group position={[-0.55, -0.85, -0.95]} scale={[1.6, 1.6, 1.6]}>
           <RimfaxGprSensor />
         </group>
       )}
@@ -65,19 +65,19 @@ function RotatingModuleRig({ moduleId }: { moduleId: string }) {
         </group>
       )}
       {moduleId === 'mmrtg' && (
-        <group position={[0, -0.2, 0.8]} scale={[1.6, 1.6, 1.6]}>
+        <group position={[0, -0.2, 1.0]} scale={[1.6, 1.6, 1.6]}>
           <MmrtgNuclearPower />
         </group>
       )}
 
       {/* 4. COMMS */}
       {moduleId === 'uhf_antenna' && (
-        <group position={[0.4, -0.9, 0.4]} scale={[1.7, 1.7, 1.7]}>
+        <group position={[0.65, -0.95, 0.65]} scale={[1.6, 1.6, 1.6]}>
           <UhfAntennaComms />
         </group>
       )}
       {moduleId === 'high_gain_dish' && (
-        <group position={[0.3, -0.8, 0.3]} scale={[1.5, 1.5, 1.5]}>
+        <group position={[0.55, -0.75, 0.48]} scale={[1.5, 1.5, 1.5]}>
           <HighGainDishComms />
         </group>
       )}
