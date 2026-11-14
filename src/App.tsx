@@ -3,17 +3,18 @@ import { MISSIONS } from './content/expedition';
 import { DEFAULT_LOADOUT } from './data/expedition';
 import { DRIVE_STEP, evaluateMission, getInitialState, haltDrive, NEUTRAL, performScienceAction, preflight, stepDrive, swapAtLander } from './sim/expedition';
 import type { Cell, ControlMode, DrivingInput, Loadout, MissionId, MissionState, ModuleId, StationaryAction } from './types/expedition';
-import { Debrief, Hangar, Icon, MissionSelect, Preflight, StageBar } from './ui/ExpeditionUI';
+import { Debrief, Hangar, MissionSelect, Preflight, StageBar } from './ui/ExpeditionUI';
 import { Operations } from './ui/ExpeditionOperations';
+import { TitleScreen } from './ui/TitleScreen';
 
 const HangarScene = lazy(() => import('./scene/ExpeditionScene').then(m => ({ default: m.HangarScene })));
-type Stage = 'select' | 'hangar' | 'preflight' | 'deploy' | 'operations' | 'report';
+type Stage = 'title' | 'select' | 'hangar' | 'preflight' | 'deploy' | 'operations' | 'report';
 const KEYS = { KeyW: 'forward', KeyS: 'reverse', KeyA: 'left', KeyD: 'right', Space: 'brake' } as const;
 const wait = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function App() {
-  const [stage, setStage] = useState<Stage>('select');
+  const [stage, setStage] = useState<Stage>('title');
   const [missionId, setMissionId] = useState<MissionId>('first-survey');
   const [loadout, setLoadout] = useState<Loadout>(DEFAULT_LOADOUT);
   const [state, setState] = useState<MissionState>(() => getInitialState(missionId));
@@ -145,18 +146,17 @@ export default function App() {
   }
 
   return <>
-    <StageBar stage={stage} />
-    <main ref={main} tabIndex={-1} className={stage === 'operations' ? 'shell shell-ops' : 'shell'}>
-      {stage === 'select' && <MissionSelect onSelect={select} />}
+    {['hangar', 'preflight', 'report'].includes(stage) && <StageBar stage={stage} />}
+    <main ref={main} tabIndex={-1} className="game-main">
+      {stage === 'title' && <TitleScreen onStart={() => setStage('select')} />}
+      {stage === 'select' && <MissionSelect onSelect={select} onBack={() => setStage('title')} />}
       {stage === 'hangar' && <Hangar mission={mission} loadout={loadout} onChange={setLoadout} onBack={() => setStage('select')} onNext={() => setStage('preflight')}
         scene={<Suspense fallback={<div className="map-fallback">Loading rover…</div>}><HangarScene loadout={loadout} /></Suspense>} />}
       {stage === 'preflight' && <Preflight mission={mission} loadout={loadout} onBack={() => setStage('hangar')} deploy={deploy} />}
-      {stage === 'deploy' && <div className="deploy-view" role="status"><div className="deploy-radar"><Icon name="crosshair" size={54} /></div>
-        <p className="eyebrow">MARS SURFACE LINK</p><h1>Deploying rover</h1><p>{mission.number} / {mission.name}</p></div>}
+      {stage === 'deploy' && <div className="dp-root" role="status"><div className="dp-copy"><span>Entry · descent · landing</span><b>{mission.name}</b><i /></div></div>}
       {stage === 'operations' && <Operations state={state} route={route} setRoute={setRoute} mode={mode} setMode={changeMode} act={act}
-        effect={effect} swap={swap} report={report} log={log} />}
+        effect={effect} swap={swap} report={report} exit={() => { changeMode('planning'); setStage('select'); }} log={log} />}
       {stage === 'report' && <Debrief state={state} retry={() => setStage('hangar')} home={() => setStage('select')} next={() => select('dune-crossing')} />}
     </main>
-    <footer className="footer"><span>APOGEE <b>/</b> MS CHUNG · SPACE APPS 2026</span><a href="https://science.nasa.gov/mars/facts/" target="_blank" rel="noreferrer">NASA Mars Facts <Icon name="arrow" size={14} /></a></footer>
   </>;
 }

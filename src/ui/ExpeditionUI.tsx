@@ -1,8 +1,12 @@
+import { lazy, Suspense, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { MISSIONS, SITES } from '../content/expedition';
 import { CAPACITY, cells, HEIGHT, MODULES, TERRAIN, terrainAt, WIDTH, WHEELS } from '../data/expedition';
 import { payload, preflight } from '../sim/expedition';
 import type { Loadout, Mission, MissionId, MissionState, ModuleId, TerrainKind, WheelId } from '../types/expedition';
+import './screens.css';
+
+const TitleMars = lazy(() => import('../scene/TitleMars').then(({ TitleMars }) => ({ default: TitleMars })));
 
 const paths = {
   crosshair: 'M12 2v4m0 12v4M2 12h4m12 0h4M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z',
@@ -19,155 +23,234 @@ const paths = {
   check: 'm5 12 4 4L19 6',
   clock: 'M12 6v6l4 2m5-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
   map: 'm3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Zm6-3v15m6-12v15',
+  x: 'M6 6l12 12M18 6 6 18',
 } as const;
 
 export function Icon({ name, size = 20 }: { name: keyof typeof paths; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }
 export function fmt(n: number, digits = 0) { return n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }); }
+
+const STEPS = [['select', 'Mission'], ['hangar', 'Hangar'], ['preflight', 'Preflight'], ['operations', 'Mars'], ['report', 'Report']] as const;
 export function StageBar({ stage }: { stage: string }) {
-  return <header className="topbar">
-    <div className="brand"><span className="brand-icon"><Icon name="crosshair" size={26} /></span><div><strong>APOGEE</strong><small>MARS ROVER ARCHITECT</small></div></div>
-    <ol className="stages" aria-label="Mission progress">
-      {([['select', 'Mission'], ['hangar', 'Hangar'], ['preflight', 'Preflight'], ['operations', 'Mars'], ['report', 'Report']] as const).map(([id, name], i) => <li key={id}
-        aria-current={stage === id || (id === 'operations' && stage === 'deploy') ? 'step' : undefined}><span>{String(i + 1).padStart(2, '0')}</span>{name}</li>)}
-    </ol>
-    <span className="top-status"><i /> MARS EXPEDITION</span>
+  const at = STEPS.findIndex(([id]) => id === stage || (id === 'operations' && stage === 'deploy'));
+  return <header className="sc-topbar">
+    <div className="sc-brand"><i /><b>APOGEE</b></div>
+    <ol aria-label="Mission progress">{STEPS.map(([id, name], i) => <li key={id} className={i < at ? 'past' : i === at ? 'now' : ''} aria-current={i === at ? 'step' : undefined}><span>{String(i + 1).padStart(2, '0')}</span>{name}</li>)}</ol>
   </header>;
 }
 
-function SectorArt({ mission }: { mission: Mission }) {
-  return <svg className="sector-art" viewBox="0 0 480 152" preserveAspectRatio="xMidYMid slice" role="img" aria-label={`Sector map for ${mission.name}`}>
-    <defs>
-      <linearGradient id={mission.id + '-fade'}><stop stopColor="#141418" /><stop offset="1" stopColor="#141418" stopOpacity="0" /></linearGradient>
-    </defs>
-    <g transform="translate(170 -8) skewX(-24) scale(19.5 17)">
-      {cells.map(c => <rect key={`${c.x}:${c.z}`} x={c.x} y={c.z} width=".98" height=".98" fill={TERRAIN[terrainAt(c)].color} opacity={.45 + ((c.x * 43 + c.z * 37) % 13) * .028} />)}
-      {mission.targets.map(id => <g key={id}><circle cx={SITES[id].cell.x + .5} cy={SITES[id].cell.z + .5} r=".42" fill="none" stroke="#a2ecde" strokeWidth=".08" /><circle cx={SITES[id].cell.x + .5} cy={SITES[id].cell.z + .5} r=".16" fill="#b6f4df" /></g>)}
-      <rect x={mission.start.x + .2} y={mission.start.z + .2} width=".6" height=".6" fill="#f4c47e" />
-    </g>
-    <rect width="355" height="152" fill={`url(#${mission.id}-fade)`} />
-    <path d="M28 26h20M28 26v20M451 126h-20m20 0v-20" stroke="#e8ab7d" opacity=".6" />
+function SectorMap({ mission, trace, position }: { mission: Mission; trace?: MissionState['trace']; position?: MissionState['position'] }) {
+  return <svg className="sc-sector" viewBox={'-0.3 -0.3 ' + (WIDTH + .6) + ' ' + (HEIGHT + .6)} role="img" aria-label={'Sector map for ' + mission.name}>
+    {cells.map(c => <rect key={c.x + ':' + c.z} x={c.x} y={c.z} width="1.02" height="1.02" fill={TERRAIN[terrainAt(c)].color} opacity={.55 + ((c.x * 43 + c.z * 37) % 13) * .03} />)}
+    <rect x={mission.start.x + .18} y={mission.start.z + .18} width=".64" height=".64" fill="none" stroke="#ffb46b" strokeWidth=".12" />
+    {mission.targets.map(id => <g key={id}><circle cx={SITES[id].cell.x + .5} cy={SITES[id].cell.z + .5} r=".44" fill="none" stroke="#7fe3df" strokeWidth=".1" /><circle cx={SITES[id].cell.x + .5} cy={SITES[id].cell.z + .5} r=".14" fill="#7fe3df" /></g>)}
+    {trace && trace.length > 1 && <polyline points={trace.map(c => (c.x + .5) + ',' + (c.z + .5)).join(' ')} fill="none" stroke="#fff3e2" strokeWidth=".14" strokeLinejoin="round" strokeLinecap="round" />}
+    {position && <circle cx={position.x + .5} cy={position.z + .5} r=".26" fill="#fff" stroke="#0b0908" strokeWidth=".06" />}
   </svg>;
 }
 
-export function MissionSelect({ onSelect }: { onSelect: (id: MissionId) => void }) {
-  return <>
-    <section className="mission-intro">
-      <div><p className="eyebrow"><span className="signal" /> MISSION CONTROL / MS CHUNG</p><h1>Choose a mission<span>.</span></h1>
-        <p>Design a rover, plan a route across Mars, and transmit your science data.</p></div>
-      <div className="intro-coordinate"><Icon name="crosshair" size={46} /><span>APG / SECTOR A<br /><strong>MARS SURFACE</strong></span></div>
-    </section>
-    <div className="section-line"><span>SURVEY MISSIONS</span><span>02 MISSIONS · 01 MAP</span></div>
-    <div className="mission-cards">
-      {Object.values(MISSIONS).map(m => <article className="mission-card" key={m.id}>
-        <div className="mission-art"><SectorArt mission={m} /><div className="mission-index">{m.number}<small>{m.id === 'first-survey' ? 'TRAINING' : 'FIELD SURVEY'}</small></div></div>
-        <div className="mission-body"><span className="eyebrow neutral">{m.terrain}</span><h2>{m.name}</h2><p>{m.brief}</p>
-          <div className="mission-facts"><span><Icon name="clock" size={16} /> {m.limit} min</span><span><Icon name="sample" size={16} /> {m.targets.reduce((n, id) => n + SITES[id].science, 0)} base science points</span></div>
-          <button className={m.id === 'first-survey' ? 'primary' : 'outline'} onClick={() => onSelect(m.id)}>Design Rover <Icon name="arrow" /></button>
-        </div>
-      </article>)}
+const DIFFICULTY: Record<MissionId, [string, string]> = { 'first-survey': ['Training', 'Two nearby samples. Learn to plan, drive, scan and transmit.'], 'dune-crossing': ['Field survey', 'One high-value target behind a dune belt. Choose your wheels and your path.'] };
+export function MissionSelect({ onSelect, onBack }: { onSelect: (id: MissionId) => void; onBack: () => void }) {
+  const list = Object.values(MISSIONS);
+  const [pick, setPick] = useState<MissionId>(list[0].id);
+  const m = MISSIONS[pick];
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const i = list.findIndex(x => x.id === pick); setPick(list[(i + (e.key === 'ArrowDown' ? 1 : list.length - 1)) % list.length].id); }
+      if (e.key === 'Escape') onBack();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+  return <div className="sc-screen sc-select">
+    <div className="sc-select-globe" aria-hidden="true"><Suspense fallback={null}><TitleMars /></Suspense></div>
+    <div className="sc-grain" aria-hidden="true" />
+    <header className="sc-head">
+      <button className="sc-back" onClick={onBack}><Icon name="back" size={18} /> Title</button>
+      <div><span className="sc-kicker">Select mission</span><h1>Where do we land?</h1></div>
+    </header>
+    <div className="sc-select-body">
+      <ol className="sc-dossiers" role="listbox" aria-label="Missions">
+        {list.map(x => <li key={x.id}>
+          <button role="option" aria-selected={pick === x.id} className={'sc-dossier' + (pick === x.id ? ' on' : '')} onClick={() => setPick(x.id)} onDoubleClick={() => onSelect(x.id)}>
+            <span className="num">{x.number}</span>
+            <span className="txt"><small>{DIFFICULTY[x.id][0]}</small><b>{x.name}</b><em>{x.terrain}</em></span>
+          </button>
+        </li>)}
+      </ol>
+      <section className="sc-brief" key={m.id} aria-live="polite">
+        <span className="sc-kicker">Mission {m.number} · {DIFFICULTY[m.id][0]}</span>
+        <h2>{m.name}</h2>
+        <p className="lead">{m.brief}</p>
+        <p className="sub">{DIFFICULTY[m.id][1]}</p>
+        <div className="sc-brief-map"><SectorMap mission={m} /></div>
+        <dl className="sc-facts">
+          <div><dt>Targets</dt><dd>{m.targets.length}</dd></div>
+          <div><dt>Window</dt><dd>{m.limit}<small>min</small></dd></div>
+          <div><dt>Budget</dt><dd>{m.budget}<small>BU</small></dd></div>
+          <div><dt>Mass cap</dt><dd>{m.massCap}<small>kg</small></dd></div>
+        </dl>
+        <button className="sc-cta" onClick={() => onSelect(m.id)}>Design rover <Icon name="arrow" /></button>
+      </section>
     </div>
-    <p className="fineprint"><Icon name="crosshair" size={15} /> Energy units (EU), Research Credits (RC), budget units (BU), and terrain multipliers are game values. WASD driving is an educational simplification; real Mars rovers are commanded from Earth with a communications delay.</p>
-  </>;
+    <p className="sc-footnote">EU, RC, BU and terrain multipliers are game values. WASD driving is a teaching simplification: real rovers are commanded from Earth with a radio delay.</p>
+  </div>;
 }
 
 const sections = [
   { slot: 'wheel', name: 'Wheels', ids: ['light', 'wide', 'reinforced'] },
-  { slot: 'scanner', name: 'Terrain Scanner', ids: ['nav', 'stereo'] },
-  { slot: 'instrument', name: 'Science Instrument', ids: ['geology', 'spectral'] },
-  { slot: 'storage', name: 'Data Storage', ids: ['standard', 'extended'] },
+  { slot: 'scanner', name: 'Scanner', ids: ['nav', 'stereo'] },
+  { slot: 'instrument', name: 'Science', ids: ['geology', 'spectral'] },
+  { slot: 'storage', name: 'Storage', ids: ['standard', 'extended'] },
 ] as const;
+const TERRAIN_SHORT: Record<TerrainKind, string> = { hard: 'Firm', sand: 'Sand', rock: 'Rock' };
 
+function Meter({ label, value, max, unit }: { label: string; value: number; max: number; unit: string }) {
+  const over = value > max;
+  return <div className={'sc-meter' + (over ? ' over' : '')}>
+    <div><span>{label}</span><b>{value}<small> / {max} {unit}</small></b></div>
+    <i><em style={{ width: Math.min(100, value / max * 100) + '%' }} /></i>
+  </div>;
+}
 export function PayloadReadout({ mission, loadout }: { mission: Mission; loadout: Loadout }) {
   const p = payload(loadout);
-  return <div className="payload-stats">
-    <div><span>Budget</span><strong className={p.budget > mission.budget ? 'danger' : ''}>{p.budget} / {mission.budget} <small>BU</small></strong><meter min="0" max={mission.budget} value={p.budget} /></div>
-    <div><span>Total Payload Mass</span><strong className={p.totalMass > mission.massCap ? 'danger' : ''}>{p.totalMass} / {mission.massCap} <small>kg</small></strong><meter min="0" max={mission.massCap} value={p.totalMass} /></div>
-    <div><span>Battery at Deployment</span><strong>{CAPACITY} <small>EU</small></strong></div>
-    <p className="micro">Rover {p.roverMass} kg · Spares {p.spareMass} kg · Lander + support {p.totalMass - p.roverMass - p.spareMass} kg</p>
+  return <div className="sc-payload">
+    <Meter label="Budget" value={p.budget} max={mission.budget} unit="BU" />
+    <Meter label="Deployed mass" value={p.totalMass} max={mission.massCap} unit="kg" />
+    <p>Rover {p.roverMass} kg · Spares {p.spareMass} kg · Lander + support {p.totalMass - p.roverMass - p.spareMass} kg · Battery {CAPACITY} EU</p>
   </div>;
 }
 
 export function Hangar({ mission, loadout, onChange, onBack, onNext, scene }: { mission: Mission; loadout: Loadout; onChange: (v: Loadout) => void; onBack: () => void; onNext: () => void; scene: ReactNode }) {
+  const [tab, setTab] = useState<typeof sections[number]['slot']>('wheel');
+  const [spares, setSpares] = useState(false);
   const active: (ModuleId | null)[] = [loadout.wheel, loadout.scanner, loadout.instrument, loadout.storage];
-  return <>
-    <div className="page-title"><div><p className="eyebrow">MISSION {mission.number} / {mission.name}</p><h1>Earth Hangar<span>.</span></h1><p>Configure your rover and review what the lander will carry to Mars.</p></div><button className="ghost" onClick={onBack}><Icon name="back" /> Missions</button></div>
-    <div className="hangar-layout">
-      <section className="hangar-left panel">
-        <div className="hangar-viewport"><span className="viewport-tag">APG–01 / ROVER BAY</span>{scene}<span className="viewport-foot">CONFIGURATION / {MODULES[loadout.wheel].label}</span></div>
-        <PayloadReadout mission={mission} loadout={loadout} />
-        <button className="primary full" onClick={onNext}>Review Preflight <Icon name="arrow" /></button>
-      </section>
-      <div className="hangar-modules">
-        {sections.map(({ slot, ids, name }, i) => <fieldset className="panel module-section" key={slot}>
-          <legend><span>0{i + 1}</span> {name}</legend>
-          <div className="module-options">{ids.map(id => {
-            const selected = loadout[slot] === id;
-            const module = MODULES[id];
-            return <button className="option" key={id} aria-pressed={selected} onClick={() => onChange({
-              ...loadout, [slot]: selected && (slot === 'scanner' || slot === 'instrument') ? null : id,
-              spares: loadout.spares.filter(spare => spare !== id),
-            })}>
-              <strong>{module.name}</strong><span>{module.mass} kg · {module.cost} BU</span><small>{module.description}</small>
-              {slot === 'wheel' && <small className="coefficients">{(['hard', 'sand', 'rock'] as TerrainKind[]).map(t => <span key={t} title={TERRAIN[t].name}>{({ hard: 'Firm', sand: 'Sand', rock: 'Rock' })[t]} {fmt(WHEELS[id as WheelId].energy[t], 2)}×</span>)}</small>}
-            </button>;
-          })}</div>
-        </fieldset>)}
-        <details className="panel details loadout-spares">
-          <summary><Icon name="garage" /> Spare Modules <span>{loadout.spares.length} {loadout.spares.length === 1 ? 'module' : 'modules'}</span></summary>
-          <p>Pack spare modules to swap them at the lander. Spares count toward your mass and budget limits.</p>
-          <div className="spare-options">{(Object.keys(MODULES) as ModuleId[]).filter(id => !active.includes(id)).map(id => <label key={id}>
-            <input type="checkbox" checked={loadout.spares.includes(id)} onChange={e => onChange({ ...loadout, spares: e.target.checked ? [...loadout.spares, id] : loadout.spares.filter(x => x !== id) })} />
-            <span>{MODULES[id].name}<small>{MODULES[id].mass} kg · {MODULES[id].cost} BU</small></span>
-          </label>)}</div>
-        </details>
+  const section = sections.find(s => s.slot === tab)!;
+  const errors = preflight(mission.id, loadout);
+  return <div className="sc-screen sc-hangar">
+    <div className="sc-hangar-scene">{scene}</div>
+    <div className="sc-hangar-shade" aria-hidden="true" />
+    <header className="sc-head">
+      <button className="sc-back" onClick={onBack}><Icon name="back" size={18} /> Missions</button>
+      <div><span className="sc-kicker">Mission {mission.number} · {mission.name}</span><h1>Earth Hangar</h1></div>
+    </header>
+    <aside className="sc-config" aria-label="Rover configuration">
+      <div className="sc-tabs" role="tablist">
+        {sections.map(s => <button key={s.slot} role="tab" aria-selected={tab === s.slot} className={tab === s.slot ? 'on' : ''} onClick={() => setTab(s.slot)}>
+          <small>{s.name}</small><b>{loadout[s.slot] ? MODULES[loadout[s.slot] as ModuleId].label : 'NONE'}</b>
+        </button>)}
       </div>
-    </div>
-  </>;
+      <div className="sc-options" role="tabpanel" key={tab}>
+        {section.ids.map(id => {
+          const selected = loadout[section.slot] === id, mod = MODULES[id];
+          return <button key={id} className={'sc-option' + (selected ? ' on' : '')} aria-pressed={selected} onClick={() => onChange({
+            ...loadout, [section.slot]: selected && (section.slot === 'scanner' || section.slot === 'instrument') ? null : id,
+            spares: loadout.spares.filter(s => s !== id),
+          })}>
+            <span className="sc-option-head"><b>{mod.name}</b><span>{mod.mass} kg · {mod.cost} BU</span></span>
+            <span className="sc-option-desc">{mod.description}</span>
+            {section.slot === 'wheel' && <span className="sc-coeffs">{(['hard', 'sand', 'rock'] as TerrainKind[]).map(t => {
+              const v = WHEELS[id as WheelId].energy[t];
+              return <span key={t}><small>{TERRAIN_SHORT[t]}</small><i><em style={{ width: Math.min(100, v / 1.8 * 100) + '%' }} className={v <= .9 ? 'good' : v >= 1.5 ? 'bad' : ''} /></i><b>{fmt(v, 2)}×</b></span>;
+            })}<small className="hint">Energy cost · lower is better</small></span>}
+          </button>;
+        })}
+      </div>
+      <button className="sc-spares-toggle" onClick={() => setSpares(v => !v)} aria-expanded={spares}><Icon name="garage" size={18} /> Spare modules <span>{loadout.spares.length}</span></button>
+      {spares && <div className="sc-spares">
+        <p>Spares ride on the lander and can be swapped in the field. They count toward mass and budget.</p>
+        {(Object.keys(MODULES) as ModuleId[]).filter(id => !active.includes(id)).map(id => <label key={id}>
+          <input type="checkbox" checked={loadout.spares.includes(id)} onChange={e => onChange({ ...loadout, spares: e.target.checked ? [...loadout.spares, id] : loadout.spares.filter(x => x !== id) })} />
+          <span>{MODULES[id].name}</span><small>{MODULES[id].mass} kg · {MODULES[id].cost} BU</small>
+        </label>)}
+      </div>}
+    </aside>
+    <footer className="sc-hangar-foot">
+      <PayloadReadout mission={mission} loadout={loadout} />
+      <button className="sc-cta" onClick={onNext}>{errors.length ? 'Review issues' : 'Preflight'} <Icon name="arrow" /></button>
+    </footer>
+  </div>;
 }
 
 export function Preflight({ mission, loadout, onBack, deploy }: { mission: Mission; loadout: Loadout; onBack: () => void; deploy: () => void }) {
   const errors = preflight(mission.id, loadout);
-  return <section className="gate panel">
-    <p className="eyebrow">MISSION {mission.number} / {mission.name}</p><h1>Preflight<span>.</span></h1>
-    <p>Check the full payload and equipment before deploying to the surface.</p>
-    <PayloadReadout mission={mission} loadout={loadout} />
-    {errors.length ? <ul className="alert danger">{errors.map(error => <li key={error}>{error}</li>)}</ul> :
-      <p className="alert positive"><Icon name="check" /> Mass and budget are within limits. Solar power, scanner, and science instrument are ready.</p>}
-    <div className="button-row"><button className="ghost" onClick={onBack}><Icon name="back" /> Back to Hangar</button><button className="primary" disabled={errors.length > 0} onClick={deploy}>Deploy Rover <Icon name="arrow" /></button></div>
-  </section>;
+  const p = payload(loadout);
+  const checks: [string, boolean, string][] = [
+    ['Budget', p.budget <= mission.budget, p.budget + ' / ' + mission.budget + ' BU'],
+    ['Deployed mass', p.totalMass <= mission.massCap, p.totalMass + ' / ' + mission.massCap + ' kg'],
+    ['Terrain scanner', !!loadout.scanner, loadout.scanner ? MODULES[loadout.scanner].name : 'Missing'],
+    ['Science instrument', !!loadout.instrument, loadout.instrument ? MODULES[loadout.instrument].name : 'Missing'],
+    ['Wheels', true, MODULES[loadout.wheel].name],
+    ['Solar battery', true, CAPACITY + ' EU'],
+  ];
+  return <div className="sc-screen sc-preflight">
+    <div className="sc-grain" aria-hidden="true" />
+    <section className="sc-modal" aria-labelledby="pf-title">
+      <span className="sc-kicker">Mission {mission.number} · {mission.name}</span>
+      <h1 id="pf-title">Preflight check</h1>
+      <ul className="sc-checks">{checks.map(([label, ok, detail], i) => <li key={label} className={ok ? 'ok' : 'fail'} style={{ animationDelay: i * 70 + 'ms' }}>
+        <i>{ok ? <Icon name="check" size={16} /> : <Icon name="x" size={16} />}</i><span>{label}</span><b>{detail}</b>
+      </li>)}</ul>
+      {errors.length > 0 && <ul className="sc-errors">{errors.map(e => <li key={e}>{e}</li>)}</ul>}
+      <div className="sc-modal-foot">
+        <button className="sc-ghost" onClick={onBack}><Icon name="back" size={18} /> Hangar</button>
+        <button className="sc-cta" disabled={errors.length > 0} onClick={deploy}>{errors.length ? 'Fix the loadout' : 'Deploy to Mars'} <Icon name="arrow" /></button>
+      </div>
+    </section>
+  </div>;
 }
 
-const outcomes = { success: 'Mission Complete', partial: 'Mission Partially Complete', failure: 'Mission Failed' };
+const outcomes = { success: 'Mission complete', partial: 'Partial success', failure: 'Mission failed' };
+function useCount(target: number, ms = 900) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { setV(target); return; }
+    let raf = 0; const t0 = performance.now();
+    const tick = (t: number) => { const k = Math.min(1, (t - t0) / ms); setV(target * (1 - (1 - k) ** 3)); if (k < 1) raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, ms]);
+  return v;
+}
+function Stat({ label, value, unit, digits = 0 }: { label: string; value: number; unit?: string; digits?: number }) {
+  const v = useCount(value);
+  return <div className="sc-stat"><span>{label}</span><b>{fmt(v, digits)}{unit && <small>{unit}</small>}</b></div>;
+}
 export function Debrief({ state, retry, home, next }: { state: MissionState; retry: () => void; home: () => void; next: () => void }) {
   const m = MISSIONS[state.mission], outcome = state.outcome ?? 'failure';
-  const maxEnergy = (Object.keys(TERRAIN) as TerrainKind[]).sort((a, b) => state.energyByTerrain[b] - state.energyByTerrain[a])[0];
-  const delivered = state.delivered.length;
-  return <>
-    <div className="page-title"><div><p className="eyebrow">DEBRIEF / MISSION {m.number}</p><h1>{outcomes[outcome]}<span>.</span></h1><p>{state.reason ?? (outcome === 'success' ? 'You transmitted all required data on time, and the rover is still operational.' : delivered ? 'The survey ended before you transmitted data from every target.' : 'The survey ended before you transmitted any data.')}</p></div></div>
-    <div className="report-grid">
-      <section className="panel report-panel"><p className="eyebrow">01 / SCIENCE</p><h2>{state.science} science points</h2>
-        <p>{state.delivered.reduce((n, s) => n + s.credits, 0)} RC earned · {state.credits} RC remaining</p>
-        <ul className="objectives">{m.targets.map(id => <li key={id}><span>{SITES[id].code} · {SITES[id].name}</span><strong>{state.delivered.some(s => s.site === id) ? 'Transmitted' : state.pending.some(s => s.site === id) ? 'In Storage' : 'Awaiting Analysis'}</strong></li>)}</ul>
-      </section>
-      <section className="panel report-panel"><p className="eyebrow">02 / OPERATIONS</p><h2>{fmt(state.distance, 1)} m traveled</h2>
-        <ul className="objectives"><li><span>Energy Used / Recharged</span><strong>{fmt(state.used, 1)} / {fmt(state.charged, 1)} EU</strong></li>
-          <li><span>Battery Remaining</span><strong>{fmt(state.battery, 1)} EU</strong></li><li><span>Time Remaining</span><strong>{fmt(m.limit - state.elapsed, 1)} min</strong></li>
-          <li><span>Stops Due to Terrain</span><strong>{state.stops}</strong></li></ul>
-      </section>
-      <section className="panel report-panel"><p className="eyebrow">03 / DESIGN & ROUTE</p><h2>{MODULES[state.loadout.wheel].name}</h2>
-        <p>{state.used && state.distance ? `The rover used the most driving energy on ${TERRAIN[maxEnergy].name.toLowerCase()} (${fmt(state.energyByTerrain[maxEnergy], 1)} EU).` : 'The rover did not travel far enough to compare terrain.'}</p>
-        <p className="micro">Final Loadout · {payload(state.loadout).totalMass} kg · {payload(state.loadout).budget} BU</p>
-        <svg className="trace-map" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Actual rover route">
-          {cells.map(c => <rect key={`${c.x}:${c.z}`} x={c.x} y={c.z} width="1" height="1" fill={TERRAIN[terrainAt(c)].color} />)}
-          <polyline points={state.trace.map(c => `${c.x + .5},${c.z + .5}`).join(' ')} fill="none" stroke="#f4ecd9" strokeWidth=".13" />
-          <circle cx={state.position.x + .5} cy={state.position.z + .5} r=".22" fill="#a1f4d3" />
-        </svg>
-      </section>
+  const top = (Object.keys(TERRAIN) as TerrainKind[]).sort((a, b) => state.energyByTerrain[b] - state.energyByTerrain[a])[0];
+  const why = state.reason ?? (outcome === 'success' ? 'All required science reached Earth on time and the rover is still operational.' : state.delivered.length ? 'The window closed before every target was transmitted.' : 'The window closed before any science was transmitted.');
+  return <div className={'sc-screen sc-debrief ' + outcome}>
+    <div className="sc-grain" aria-hidden="true" />
+    <header className="sc-debrief-head">
+      <span className="sc-kicker">Debrief · Mission {m.number} · {m.name}</span>
+      <h1>{outcomes[outcome]}</h1>
+      <p>{why}</p>
+    </header>
+    <div className="sc-debrief-body">
+      <div className="sc-stats">
+        <Stat label="Science score" value={state.science} />
+        <Stat label="Research credits" value={state.delivered.reduce((n, s) => n + s.credits, 0)} unit="RC" />
+        <Stat label="Distance driven" value={state.distance} unit="m" digits={1} />
+        <Stat label="Energy used" value={state.used} unit="EU" digits={1} />
+        <Stat label="Energy recharged" value={state.charged} unit="EU" digits={1} />
+        <Stat label="Time left" value={Math.max(0, m.limit - state.elapsed)} unit="min" digits={1} />
+      </div>
+      <div className="sc-debrief-side">
+        <div className="sc-debrief-map"><SectorMap mission={m} trace={state.trace} position={state.position} /></div>
+        <ul className="sc-targets">{m.targets.map(id => {
+          const s = state.delivered.some(x => x.site === id) ? 'Transmitted' : state.pending.some(x => x.site === id) ? 'Stored, not sent' : 'Not analyzed';
+          return <li key={id} className={s === 'Transmitted' ? 'ok' : ''}><span>{SITES[id].name}</span><b>{s}</b></li>;
+        })}</ul>
+        <p className="sc-insight">{state.distance > 1 ? 'Most driving energy went into ' + TERRAIN[top].name.toLowerCase() + ' (' + fmt(state.energyByTerrain[top], 1) + ' EU) with ' + MODULES[state.loadout.wheel].name.toLowerCase() + '.' : 'The rover barely moved this run.'}{state.stops ? ' Safety stops: ' + state.stops + '.' : ''}</p>
+      </div>
     </div>
-    <div className="button-row report-buttons"><button className="ghost" onClick={home}><Icon name="back" /> Mission List</button><button className="outline" onClick={retry}>Try Another Loadout</button>
-      {state.mission === 'first-survey' && outcome === 'success' && <button className="primary" onClick={next}>Next Mission <Icon name="arrow" /></button>}</div>
-  </>;
+    <footer className="sc-debrief-foot">
+      <button className="sc-ghost" onClick={home}><Icon name="back" size={18} /> Missions</button>
+      <button className={state.mission === 'first-survey' && outcome === 'success' ? 'sc-ghost' : 'sc-cta'} onClick={retry}>Try another loadout</button>
+      {state.mission === 'first-survey' && outcome === 'success' && <button className="sc-cta" onClick={next}>Next mission <Icon name="arrow" /></button>}
+    </footer>
+  </div>;
 }
 

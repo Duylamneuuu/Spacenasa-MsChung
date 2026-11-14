@@ -1,7 +1,9 @@
 /* APOGEE · Mars surface console */
 :root {
+  --font-display: "Chakra Petch", "Segoe UI", sans-serif;
+  --font-body: "Barlow", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-body);
   color: #f2e8d5;
   background: #11110f;
   font-synthesis: none;
@@ -529,3 +531,7 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.game-main { flex: 1; }
+body { overflow: hidden; }
+@media (max-width: 820px) { body { overflow: auto; } }
