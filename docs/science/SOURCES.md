@@ -3,7 +3,7 @@
 > **Project:** APOGEE — Mars Rover Architect (Team MS Chung)  
 > **Competition:** NASA Space Apps Challenge 2026 — Challenge 13: *Space Mission Design Game*  
 > **Specification Alignment:** Approved GDD v2 (**Plan & Drive**, English-only player experience)  
-> **Last Audited Against Repo:** `origin/main` (`7606934`) · **Verification Date:** 2026-11-14
+> **Baseline Audit:** `main` (`7606934`); **Playable Integration:** PR #7 (`58206fc`) · **Verification Date:** 2026-11-14
 
 ---
 
@@ -12,7 +12,7 @@
 APOGEE is an **educational space mission trade-off simulator**, not flight-certified aerospace mission planning software, a rigid-body terramechanics solver, or a real-time spacecraft teleoperation console.
 
 Every mechanism in this document is explicitly separated into three categories:
-1. **Verified NASA / JPL Physical Fact:** Supported directly by primary NASA/JPL/NTRS references listed below (URLs checked live HTTP `200 OK` on 2026-11-14).
+1. **Verified NASA / JPL Physical Fact:** Supported directly by primary NASA/JPL/NTRS references listed below (destination titled and checked against the cited content on 2026-11-14).
 2. **Approved Gameplay Rule (`GAME BALANCE — NOT NASA DATA`):** Fictional numerical parameters defined in `docs/APOGEE_GDD.md` for balanced 3–5 minute educational decision-making.
 3. **Current Codebase Verification (`origin/main` @ `7606934`):** Whether the rule is actually present in `src/` today or still awaiting the **Plan & Drive** migration. No reference in this file is claimed to drive gameplay unless directly verified in code.
 
@@ -43,7 +43,7 @@ Every mechanism in this document is explicitly separated into three categories:
 
 | Factor | Verified NASA / JPL Facts | Primary Reference URL | What It Supports in APOGEE |
 |---|---|---|---|
-| **Solar Flux, Dust Deposition & Global Storms (`MER Opportunity` & `Spirit`)** | Mars orbits at an average **1.5 AU (228 million km)** from the Sun with a **24.6-hour solar day (sol)**, receiving substantially less solar irradiance than Earth. Solar-powered rovers (**Spirit** and **Opportunity**) relied on deployable solar panels to recharge batteries. Accumulated surface dust degraded array output until occasional wind gusts swept panels clean (boosting Spirit's array output from **~60% to ~93%** in March 2005). Conversely, severe dust storms slashed Opportunity's energy to **128 watt-hours** in July 2007 (forcing indefinite suspension of science), entering the **Perseverance Valley** gully in 2016 reduced Sun exposure and energy levels, and the **2018 Mars-wide dust storm** cut solar charging until Opportunity lost contact on June 10, 2018. | • [NASA Science — Mars Exploration Rover Opportunity](https://science.nasa.gov/mission/mer-opportunity/)<br>• [NASA Science — Mars Exploration Rover Spirit](https://science.nasa.gov/mission/mer-spirit/)<br>• [NASA Science — Mars Facts](https://science.nasa.gov/mars/facts/) | Supports APOGEE's unified **Battery + Solar Recharge** model: driving and science operations drain battery; recharging requires **adequate sunlight, stationary parking (no free movement power), and elapsed mission time**, while shadowed canyons/dust suppress charge rate. |
+| **Solar Flux, Dust Deposition & Global Storms (`MER Opportunity` & `Spirit`)** | Mars orbits at an average **1.5 AU (228 million km)** from the Sun with a **24.6-hour solar day (sol)**, receiving substantially less solar irradiance than Earth. Solar-powered rovers (**Spirit** and **Opportunity**) relied on deployable solar panels to recharge batteries. Accumulated surface dust degraded array output until occasional wind gusts swept panels clean (boosting Spirit's array output from **~60% to ~93%** in March 2005). Conversely, severe dust storms slashed Opportunity's energy to **128 watt-hours** in July 2007 (forcing indefinite suspension of science), driving down into **Perseverance Valley** in mid-July 2017 reduced Sun exposure and energy levels, and the **2018 Mars-wide dust storm** cut solar charging until Opportunity lost contact on June 10, 2018. | • [NASA Science — Mars Exploration Rover Opportunity](https://science.nasa.gov/mission/mer-opportunity/)<br>• [NASA Science — Mars Exploration Rover Spirit](https://science.nasa.gov/mission/mer-spirit/)<br>• [NASA Science — Mars Facts](https://science.nasa.gov/mars/facts/) | Supports APOGEE's unified **Battery + Solar Recharge** model: driving and science operations drain battery; recharging requires **adequate sunlight, stationary parking (no free movement power), and elapsed mission time**, with a low-light sector reducing charge availability. Dynamic dust storms are not simulated. |
 
 ---
 
@@ -51,7 +51,7 @@ Every mechanism in this document is explicitly separated into three categories:
 
 | Constraint | Verified NASA / JPL Facts | Primary Reference URL | What It Supports in APOGEE |
 |---|---|---|---|
-| **Light-Time Latency, Low Physical Speed, & Onboard `AutoNav`** | Radio signals through NASA's **Deep Space Network (DSN)** (34 m and 70 m antennas) suffer up to a **44-minute round-trip communication delay** between Earth and Mars at maximum orbital separation (~3 to 22 minutes one-way). Furthermore, Perseverance's top speed on flat, hard ground is under **0.1 mph (152 meters per hour, ~4.2 cm/s)** while consuming under **200 W** for mobility. Consequently, **NASA never drives Mars rovers interactively with a live joystick from Earth**. Instead, Earth-based rover planners build route plans with specific stops on 3D stereo maps and uplink command sequences; onboard **AutoNav** generates local 3D hazard maps and routes around boulders autonomously. | • [NASA NTRS — Assessment of Communication Delay Research (20250000703)](https://ntrs.nasa.gov/citations/20250000703)<br>• [NASA SCaN — Communicating with Missions (DSN)](https://www.nasa.gov/communicating-with-missions/)<br>• [NASA Science — How Perseverance Drives on Mars](https://science.nasa.gov/resource/how-perseverance-drives-on-mars/)<br>• [NASA Perseverance Rover Components](https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/) | Explains APOGEE's **Plan & Drive** pedagogy:<br>1. **Planning Mode** models Earth-side waypoint selection and pre-drive energy/time/risk estimation.<br>2. **Driving Mode (`W/S/A/D` + chase camera)** is explicitly an **educational operator-control abstraction**—not real-time Earth teleoperation—designed to let students directly feel terrain resistance, speed penalties, and route-deviation costs during a 3–5 minute demo. |
+| **Light-Time Latency, Low Physical Speed, & Onboard `AutoNav`** | Radio signals through NASA's **Deep Space Network (DSN)** (34 m and 70 m antennas) suffer up to a **44-minute round-trip communication delay** between Earth and Mars at maximum orbital separation (up to about 22 minutes one way at that distance). Furthermore, Perseverance's top speed on flat, hard ground is under **0.1 mph (152 meters per hour, ~4.2 cm/s)** while consuming under **200 W** for mobility. Perseverance operators plan stops on Earth and send commands. Onboard **AutoNav** maps the terrain and can choose a path around obstacles without waiting for Earth. | • [NASA NTRS — Assessment of Communication Delay Research (20250000703)](https://ntrs.nasa.gov/citations/20250000703)<br>• [NASA SCaN — Communicating with Missions (DSN)](https://www.nasa.gov/communicating-with-missions/)<br>• [NASA Science — How Perseverance Drives on Mars](https://science.nasa.gov/resource/how-perseverance-drives-on-mars/)<br>• [NASA Perseverance Rover Components](https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/) | Explains APOGEE's **Plan & Drive** pedagogy:<br>1. **Planning Mode** models Earth-side waypoint selection and pre-drive energy/time/risk estimation.<br>2. **Driving Mode (`W/S/A/D` + chase camera)** is explicitly an **educational operator-control abstraction**—not real-time Earth teleoperation—designed to let students directly feel terrain resistance, speed penalties, and route-deviation costs during a 3–5 minute demo. |
 
 ---
 
@@ -62,7 +62,7 @@ All numeric units, currencies, scores, and multipliers specified for APOGEE v2 (
 | Parameter / System | Approved GDD v2 Value (`GAME BALANCE — NOT NASA DATA`) | Engineering Concept Taught |
 |---|---|---|
 | **Battery Capacity & Safety Reserve** | `0–100 EU` (Energy Units); low-battery warning below `15 EU` | Finite surface energy budget; reserve margin for communications and recovery |
-| **Action Costs (Baseline)** | Base drive `5 EU / segment` (before terrain/wheel/load factors); `SCAN = 6 EU`; `ANALYZE = 12 EU`; `TRANSMIT = 6 EU` | Power allocation between mobility, sensing, science sampling, and DSN uplink |
+| **Action Costs (Baseline)** | Base drive `5 EU / segment` in the GDD; PR #7 tunes it to `4.8 EU` per 4.4 m before terrain, wheel, load, and roughness factors; `SCAN = 6 EU`; `ANALYZE = 12 EU`; `TRANSMIT = 6 EU` | Power allocation between mobility, sensing, science sampling, and DSN uplink |
 | **Solar Recharge Rate** | `+8 EU per 10 min` stopped in adequate sunlight (reduced/blocked in shadowed canyons or storms) | Charging trades mission time for energy recovery and depends on illumination |
 | **W1 — Light Wheel** | Hard `0.80×` · Soft Sand `1.80×` · Sharp Rock `1.60×` · Slope `1.40×` | Lowest mass and highest efficiency on firm ground; poor sand/sharp-rock performance |
 | **W2 — Wide Traction Wheel** | Hard `1.25×` · Soft Sand `0.85×` · Sharp Rock `1.25×` · Slope `1.10×` | Improved flotation and efficiency in soft sand; higher rolling resistance on hard flat rock |
@@ -72,9 +72,12 @@ All numeric units, currencies, scores, and multipliers specified for APOGEE v2 (
 
 ---
 
-## 4. Direct Code Verification Against `origin/main` (`7606934`)
+## 4. Playable Implementation and Baseline Audit
 
-To avoid claiming unimplemented rules as live behavior, this table records what was directly verified in `src/` at commit `7606934`:
+**Playable PR #7, tested commit `58206fc`.** The game's [sunlight function](https://github.com/Duylamneuuu/Spacenasa-MsChung/blob/58206fc16292dbafd2bc0b1f1c9092bf0c5ea390/src/sim/expedition.ts) uses the [24.6-hour Martian sol](https://science.nasa.gov/mars/facts/) as the period of a simplified daylight curve. The light threshold, terrain factors, EU charge rate, RC, and wheel balance are fictional. The map has one area with reduced illumination; it does not simulate dust events or atmospheric physics. The [tested build handoff](https://github.com/Duylamneuuu/Spacenasa-MsChung/blob/58206fc16292dbafd2bc0b1f1c9092bf0c5ea390/docs/PLAN_DRIVE_IMPLEMENTATION.md) lists what was actually exercised.
+
+### Historical baseline: `main` at `7606934`
+This table records the legacy findings at that commit. They are not findings against the playable build:
 
 | Area | Status on `origin/main` (`7606934`) | Observed Code Evidence |
 |---|---|---|

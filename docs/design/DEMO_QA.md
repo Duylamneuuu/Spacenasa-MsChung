@@ -1,12 +1,28 @@
 # APOGEE — Mars Rover Architect: Judge Demo Script & Acceptance QA Checklist
 
 > **Target Specification:** Approved GDD v2 (**Plan & Drive**, 100% English player-facing experience)  
-> **Reference Docs:** `docs/APOGEE_GDD.md` · `docs/WORK_MASTER_PROMPT.md` · `docs/UI_LANGUAGE_CHECKLIST.md` · `docs/science/SOURCES.md`  
+> **Reference Docs:** [GDD](../APOGEE_GDD.md) · [Work Master Prompt](../WORK_MASTER_PROMPT.md) · [English checklist](../UI_LANGUAGE_CHECKLIST.md) · [NASA/JPL sources](../science/SOURCES.md)
 > **Audited Baseline Commit:** `origin/main` (`760693474bbdfdb4a832ba427c11095977d7f339`) · **Audit Date:** 2026-11-14
 
-> **Honesty Notice:** At audited commit `7606934`, the approved **Plan & Drive** architecture (waypoint planning map, `RouteEstimate`, `START DRIVE` mode gate, Mission 01/02 definitions, stopped solar charging, and English-only UI/log cleanup) is **not yet implemented on `main`**, and `node_modules` is not installed locally. Accordingly, all Plan & Drive runtime tests below are marked **`NOT RUN`**, and no waypoint coordinates, scores, or run outcomes are fabricated. Direct static-code audit findings on `7606934` are separated clearly in **Appendix A**.
+> **Honesty Notice:** At audited commit `7606934`, the approved **Plan & Drive** architecture (waypoint planning map, `RouteEstimate`, `START DRIVE` mode gate, Mission 01/02 definitions, stopped solar charging, and English-only UI/log cleanup) is **not yet implemented on `main`**, and `node_modules` is not installed locally. Accordingly, the baseline column and case notes below retain **`NOT RUN`** where applicable, and no waypoint coordinates, scores, or run outcomes are fabricated. Direct static-code audit findings on `7606934` are separated clearly in **Appendix A**.
 
 ---
+
+## Verified on the playable build
+
+Build: [PR #7](https://github.com/Duylamneuuu/Spacenasa-MsChung/pull/7), commit `58206fc` · [Node 20 CI](https://github.com/Duylamneuuu/Spacenasa-MsChung/actions/runs/43576039325/job/132390394596) · [Browser evidence](https://github.com/Duylamneuuu/Spacenasa-MsChung/tree/58206fc16292dbafd2bc0b1f1c9092bf0c5ea390/docs/evidence).
+
+| Cases | Verified result |
+| --- | --- |
+| TC-01, TC-02 | Chromium: the firm-ground detour with Lightweight Wheels and the dune shortcut with Wide Traction Wheels both ended in Mission Complete. The shortcut run earned 60 Science Score and 24 RC. |
+| TC-03 | Chromium: click on the 3D terrain added a waypoint; manual W changed live telemetry. Engine test: deviating from the estimate changed the cost. Compare Navigation estimates with Live Telemetry; Mission Report records actuals rather than storing the initial estimate. |
+| TC-04 | Chromium: both First Survey samples transmitted and the mission completed. Engine test: one transmitted sample yields partial credit. |
+| TC-05, TC-06 | Chromium: W did not move the rover while Planning or Paused; Start Drive without input stayed idle; Replan preserved position. Browser focus-loss and modal combinations were not verified in that walkthrough. |
+| TC-07 | Chromium: the lightweight shortcut triggered a safe stop and an unfinished report with no downlink showed failure. Engine tests also verified power and deadline limits. |
+| TC-08, TC-09 | Chromium: a stopped 10-minute solar charge succeeded, and Transmit was disabled after downlink. Engine tests covered moving/low-light recharge rejection and duplicate rewards. |
+| TC-10 | Engine tests verified spare mass, availability and lander swaps. Browser garage swap was not exercised in the walkthrough. |
+| TC-11 | The active screens used by the walkthrough were in English. A comprehensive accessibility and all-states language pass is not recorded. |
+
 
 ## Part 1: 3–5 Minute Judge Demo Script (Mission 02 First)
 
@@ -14,10 +30,10 @@
 
 | Time | Segment | Presenter Actions & On-Screen Proof | Key Engineering Message (English UI) |
 |---|---|---|---|
-| **0:00 – 0:45** | **1. Mission 02 Setup: Light Wheels (`W1`) + Firm-Ground Detour Plan** | 1. Select **Mission 02: The Dune Crossing**.<br>2. In **Earth Hangar (Design)**, equip **Light Wheels (`W1`)** and pack **Wide Traction Wheels (`W2`)** as an optional spare in the **Lander Depot**, pointing out that **Total Deployed Mass** includes both installed modules and carried spares.<br>3. Pass **Preflight Check** (budget and mass limits only; no rocket/Δv selection) and deploy to Mars.<br>4. In **Planning Mode** (isometric tactical map), click waypoints to plot the **longer firm-ground detour** around the soft-sand belt toward the target science site.<br>5. Point out the **Route Estimate** (`Estimated Energy`, `Estimated Time`, `Risk Level`, and `Unscanned Terrain` uncertainty). | *"Same map, multiple viable engineering choices: Light Wheels are cheap and efficient on firm basalt, so we plan a longer detour around soft sand."* |
-| **0:45 – 2:00** | **2. `START DRIVE` & Manual `W/S/A/D` Driving (Route Is Guidance)** | 1. Press **START DRIVE**.<br>2. **Keep hands off the keyboard for 2–3 seconds** so judges observe the rover remains **stationary**—confirming the route is visual guidance, **not autopilot**.<br>3. Drive manually with **W** (forward), **S** (reverse), and **A/D** (steer) along the 3D guidance trail and minimap.<br>4. Intentionally steer briefly onto the edge of the **soft sand** to demonstrate live speed drop, increased battery drain rate, and **Actual Energy / Elapsed Time** diverging from the pre-drive **Route Estimate**.<br>5. Briefly press **Pause / Replan**, verify the rover stays at its current physical position, adjust a waypoint, and click **Resume**. | *"Pressing Start Drive hands control to the operator. Deviations off the planned path immediately change actual speed, energy burn, and mission time."* |
-| **2:00 – 2:50** | **3. Park, Scan, Analyze, Transmit & Mission Report** | 1. Drive up to the Mission 02 Science Site and **stop completely**.<br>2. Run **Terrain Scanner** (highlight partial terrain/hazard readout, not 100% underground certainty), **Analyze Sample**, and **Transmit Data**.<br>3. Point out cumulative **Science Score** and one-time **Research Credits (`RC`)**.<br>4. Open **Mission Report** and compare **Planned Estimate vs. Actual Driven** energy, time, risk exposure, and configuration explanation. | *"Research Credits are fictional progression unlocked once per newly transmitted discovery; the Mission Report explains why your design and driving diverged from the estimate."* |
-| **2:50 – 4:00** | **4. Second Strategy: Wide Traction Wheels (`W2`) + Sandy Shortcut** | 1. Click **Retry** (or swap carried spares at the **Lander Garage**) and equip **Wide Traction Wheels (`W2`)**.<br>2. In **Planning Mode**, plot a direct **sandy shortcut** straight across the soft-sand belt to the same site.<br>3. Show the updated **Route Estimate** (shorter distance, lower sand penalty vs. `W1`, higher mass/budget trade-off).<br>4. Press **START DRIVE**, manually drive `W/S/A/D` across the soft sand, park, **Analyze**, **Transmit**, and inspect the **Mission Report** alongside Run 1. | *"Two completely different wheel-and-route strategies both succeed—with measurable trade-offs in budget, mass, time, and energy."* |
+| **0:00 – 0:45** | **1. Mission 02 Setup: Light Wheels (`W1`) + Firm-Ground Detour Plan** | 1. Select **Mission 02: The Dune Crossing**.<br>2. In **Earth Hangar**, equip **Lightweight Wheels (`W1`)** and pack **Wide Traction Wheels (`W2`)** as an optional spare in the **Lander Depot**, pointing out that **Total Deployed Mass** includes both installed modules and carried spares.<br>3. Pass **Preflight Check** (budget and mass limits only; no rocket/Δv selection) and deploy to Mars.<br>4. In **Planning Mode** (isometric tactical map), choose **North detour · recommended** to plot the firm-ground route, or click the terrain to place waypoints manually.<br>5. Point out the **Route Estimate** (`Estimated Energy`, `Estimated Time`, `Risk Level`, and `Unscanned Terrain` uncertainty). | *"Same map, multiple viable engineering choices: Light Wheels are cheap and efficient on firm basalt, so we plan a longer detour around soft sand."* |
+| **0:45 – 2:00** | **2. `START DRIVE` & Manual `W/S/A/D` Driving (Route Is Guidance)** | 1. Press **START DRIVE**.<br>2. **Keep hands off the keyboard for 2–3 seconds** so judges observe the rover remains **stationary**—confirming the route is visual guidance, **not autopilot**.<br>3. Drive manually with **W** (forward), **S** (reverse), and **A/D** (steer) along the 3D guidance trail and minimap.<br>4. Point out **Energy used** and **Time left** in Live Telemetry as the rover travels on firm ground.<br>5. Press **Pause drive** and show that the rover stays in place. Use **Resume drive** to continue, or **Replan route** then **Start drive** to edit from that position. | *"Pressing Start Drive hands control to the operator. Deviations off the planned path immediately change actual speed, energy burn, and mission time."* |
+| **2:00 – 2:50** | **3. Park, Scan, Analyze, Transmit & Mission Report** | 1. Drive up to the Mission 02 Science Site and **stop completely**.<br>2. Run **Terrain Scanner** (highlight partial terrain/hazard readout, not 100% underground certainty), **Analyze Sample**, and **Transmit Data**.<br>3. Point out cumulative **Science Score** and one-time **Research Credits (`RC`)**.<br>4. Compare the initial **Navigation** estimate with **Live Telemetry** before opening **Mission Report**. Use the report for actual distance, energy, time, stops and configuration. | *"Research Credits are fictional progression unlocked once per newly transmitted discovery; Live Telemetry reflects how you actually drove, and the Mission Report records your final outcome and trade-offs."* |
+| **2:50 – 4:00** | **4. Second Strategy: Wide Traction Wheels (`W2`) + Sandy Shortcut** | 1. Click **Try Another Loadout** from the Mission Report and equip **Wide Traction Wheels (`W2`)**.<br>2. In **Planning Mode**, select **Dune shortcut** to set a direct guide across the soft sand to the same site.<br>3. Show the updated **Route Estimate** (shorter distance, lower sand penalty vs. `W1`, higher mass/budget trade-off).<br>4. Press **START DRIVE**, hold **W** across the soft sand from the starting heading, showing the change in speed and energy use; release **W** near the site, park, select **Analyze sample** and **Transmit**, then open **Mission report**. | *"Two completely different wheel-and-route strategies both succeed—with measurable trade-offs in budget, mass, time, and energy."* |
 | **4:00 – 4:30** | **5. NASA Science Grounding & Scope Transparency** | 1. Summarize the real NASA inspiration (MER `Spirit` sand entrapment at Troy, `Curiosity` vs. `Perseverance` wheels, `Opportunity` solar dust/shadow limits, `NavCam`/`HazCam` vs. `RIMFAX` subsurface radar).<br>2. State openly that **WASD is an educational control abstraction** (real Mars rovers have up to ~44 min round-trip radio latency and use sequenced plans + onboard `AutoNav`), and that `EU`, `RC`, and wheel multipliers are **GAME BALANCE** constants. | *"Honest educational simulation: real engineering trade-offs without claiming fake NASA numbers or real-time joystick Mars driving."* |
 
 ---
@@ -34,7 +50,7 @@
 |---|---|---|---|---|
 | **TC-01** | Mission 02: Light Wheels (`W1`) + Firm-Ground Detour | P0 | `NOT RUN` | Needs Plan & Drive map, `W1` GDD multipliers, and Mission 02 |
 | **TC-02** | Mission 02: Wide Traction Wheels (`W2`) + Sandy Shortcut | P0 | `NOT RUN` | Needs Plan & Drive map, `W2` GDD multipliers, and Mission 02 |
-| **TC-03** | Planned Estimates vs. Actual Driving & Park/Analyze/Transmit/Report | P0 | `NOT RUN` | Needs `RouteEstimate` + `Mission Report` planned-vs-actual diff |
+| **TC-03** | Planned Estimates vs. Actual Driving & Park/Analyze/Transmit/Report | P0 | `NOT RUN` | Compare the Navigation estimate with Live Telemetry and report actuals |
 | **TC-04** | Mission 01 (`First Survey`): Two Science Samples Tutorial Loop | P0 | `NOT RUN` | Needs Mission 01 scenario data and two tutorial sample sites |
 | **TC-05** | `START DRIVE` Keeps Rover Still Without Input (No Autopilot) | P0 | `NOT RUN` | Needs `ControlMode` (`planning \| driving \| paused`) gate |
 | **TC-06** | Pause / Replan Retains Actual Rover Position & Heading | P0 | `NOT RUN` | Needs Pause/Replan UI & pose preservation in `src/sim/` |
@@ -87,16 +103,16 @@
   - **Actual Energy** and **Elapsed Time** increase dynamically from actual `(x, z)` terrain sampling and `deltaTime` movement—not from the pre-drive estimate—and **never double-charge** between scene and simulation.
   - **Analyze Sample** requires stopping within proximity of the site (rejecting or prompting clearly if still moving or out of range).
   - **Transmit Data** transfers collected sample data, increments cumulative **Science Score**, and awards one-time fictional **Research Credits (`RC`)**.
-  - **Mission Report** displays side-by-side **Planned Estimate vs. Actual Driven** energy, time, risk events, and configuration explanation.
+  - **Mission Report** summarizes the actual route, energy used, time remaining and safety stops. Compare with the estimate recorded before Start Drive.
 
 #### TC-04 — Mission 01 (`First Survey`): Two Science Samples Tutorial Loop
 - **Status:** `NOT RUN` (awaiting Mission 01 tutorial scenario and Plan & Drive UI).
 - **Setup:** Launch a new game and select **Mission 01: First Survey**.
 - **Actions:**
   1. Follow the English-only tutorial prompts through Rover Design, Preflight, and deployment.
-  2. In **Planning Mode**, lay waypoints to visit **both** Mission 01 Science Samples; test **Undo** and **Clear** before finalizing the plan.
+  2. In **Planning Mode**, lay waypoints to visit **both** Mission 01 Science Samples; test **Remove waypoint** and **Clear route** before finalizing the plan.
   3. Press **START DRIVE**, manually drive with **W/S/A/D** to Sample 1, park, run **Terrain Scanner** and **Analyze Sample**.
-  4. Drive to Sample 2, park, **Analyze Sample**, recharge via solar if needed, and **Transmit Data** (observing comms rules if applicable).
+  4. With **Standard Storage**, **Transmit** Sample 1 before analyzing Sample 2. Drive to Sample 2, park, select **Analyze Sample** and **Transmit**, then recharge if needed.
   5. Open **Mission Report**; also test finishing after transmitting only **one** of the two samples in a separate run to verify **Partial Success**.
 - **Expected Result:**
   - All tutorial instructions for Planning, Start Drive, `W/S/A/D`, Scanner, Solar Recharge, Analyze, and Transmit are clear and 100% English.
@@ -132,13 +148,13 @@
 
 #### TC-07 — Unsafe or Failed Run (`0 EU` Battery Depletion or Unrecoverable Hazard)
 - **Status:** `NOT RUN` (awaiting Plan & Drive failure evaluation and retry flow).
-- **Setup:** Select **Mission 02** with **Light Wheels (`W1`)** and purposefully plan/drive an inefficient path through repeated **Soft Sand** and/or **Sharp Rock** hazards (or burn battery through repeated scans without recharging).
+- **Setup:** Select **Mission 02** with **Light Wheels (`W1`)** and purposefully plan/drive an inefficient path into a **Soft Sand** sector that exceeds the grip limit, or run short on battery or mission time through unnecessary travel.
 - **Actions:**
-  1. Drive `W/S/A/D` until battery hits **`0 EU`**, or trigger an unrecoverable hazard/time-limit failure outside sunlit recharge/recovery margin.
-  2. Attempt to press **W/S/A/D** after `0 EU` power loss.
+  1. Drive directly into the dunes with Lightweight Wheels until the rover stops for safety, or trigger a power/time-limit failure.
+  2. Attempt to drive while paused after the stop, or after mission-ending power loss.
   3. Proceed to **Mission Report** and click **Retry**.
 - **Expected Result:**
-  - Battery is clamped cleanly at `0 EU` (never negative or `NaN`).
+  - Battery remains within 0–100 EU. The engine can stop before 0 EU at the operating threshold.
   - Rover halts safely and stops accepting drive propulsion; an English-language failure notification explains why power/mobility was lost.
   - **Mission Report** classifies the outcome as **Failure** (or **Partial Success** if partial science was already transmitted before failure), explains which terrain/wheel choices drove the failure, and **Retry** cleanly resets mission state.
 
