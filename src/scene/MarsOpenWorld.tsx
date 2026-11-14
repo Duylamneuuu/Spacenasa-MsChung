@@ -293,33 +293,87 @@ function WorldLandmarks({
 }) {
   return (
     <group>
-      {/* 1. Lander Base Outpost (HQ at [0, 0]) */}
+      {/* 1. Lander Base Outpost (HQ at [0, 0] with Hexagonal Deck, 3 Ramps & Robotic Gantry Crane) */}
       <group position={[LANDER_BASE_3D.x, 0, LANDER_BASE_3D.z]}>
-        {/* Landing Pad Pad Ring */}
-        <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-          <ringGeometry args={[LANDER_BASE_3D.radius - 1.5, LANDER_BASE_3D.radius, 48]} />
-          <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} transparent opacity={0.65} />
+        {/* Hexagonal Deck Platform */}
+        <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[LANDER_BASE_3D.radius * 0.75, LANDER_BASE_3D.radius * 0.85, 0.9, 6]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.3} />
         </mesh>
-        {/* Hexagonal Lander Module */}
-        <mesh position={[0, 1.2, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[2.2, 3.2, 2.4, 6]} />
-          <meshStandardMaterial color="#f8fafc" metalness={0.6} roughness={0.3} />
+
+        {/* WORKSHOP ZONE Glowing Cyan Circular Floor Ring */}
+        <mesh position={[0, 0.92, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <ringGeometry args={[LANDER_BASE_3D.radius - 2.8, LANDER_BASE_3D.radius, 48]} />
+          <meshBasicMaterial color="#06b6d4" side={THREE.DoubleSide} transparent opacity={0.7} />
+        </mesh>
+        <mesh position={[0, 0.922, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[LANDER_BASE_3D.radius - 4.2, LANDER_BASE_3D.radius - 3.4, 48]} />
+          <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} transparent opacity={0.5} />
+        </mesh>
+
+        {/* 3 Heavy-Duty Access Ramps (120° Spacing) with Yellow Hazard Trim */}
+        {[0, (2 * Math.PI) / 3, (4 * Math.PI) / 3].map((angle, i) => (
+          <group key={i} rotation={[0, angle + 0.52, 0]}>
+            <mesh position={[0, 0.45, LANDER_BASE_3D.radius * 0.88]} rotation={[0.22, 0, 0]} castShadow receiveShadow>
+              <boxGeometry args={[3.2, 0.18, 4.2]} />
+              <meshStandardMaterial color="#334155" metalness={0.75} roughness={0.35} />
+            </mesh>
+            <mesh position={[-1.55, 0.52, LANDER_BASE_3D.radius * 0.88]} rotation={[0.22, 0, 0]}>
+              <boxGeometry args={[0.18, 0.25, 4.2]} />
+              <meshStandardMaterial color="#eab308" />
+            </mesh>
+            <mesh position={[1.55, 0.52, LANDER_BASE_3D.radius * 0.88]} rotation={[0.22, 0, 0]}>
+              <boxGeometry args={[0.18, 0.25, 4.2]} />
+              <meshStandardMaterial color="#eab308" />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Central Cylindrical Habitat Module */}
+        <mesh position={[0, 2.5, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[2.2, 2.8, 3.2, 12]} />
+          <meshStandardMaterial color="#f8fafc" metalness={0.5} roughness={0.3} />
         </mesh>
         {/* Gold Thermal Blanket Upper Stage */}
-        <mesh position={[0, 2.6, 0]} castShadow>
-          <coneGeometry args={[1.8, 1.2, 6]} />
-          <meshStandardMaterial color="#f59e0b" metalness={0.8} roughness={0.2} />
+        <mesh position={[0, 4.5, 0]} castShadow>
+          <coneGeometry args={[2.2, 1.8, 12]} />
+          <meshStandardMaterial color="#f59e0b" metalness={0.85} roughness={0.2} />
         </mesh>
-        {/* High-Gain Antenna Mast */}
-        <mesh position={[0, 4.2, 0]}>
-          <cylinderGeometry args={[0.08, 0.08, 2.4, 8]} />
-          <meshStandardMaterial color="#94a3b8" />
+
+        {/* Articulated Robotic Gantry Crane (🏗️) */}
+        <group position={[1.8, 3.2, 0]} rotation={[0, 0.35, 0]}>
+          {/* Turret Base */}
+          <mesh position={[0, 0.4, 0]} castShadow>
+            <cylinderGeometry args={[0.6, 0.7, 0.8, 12]} />
+            <meshStandardMaterial color="#f97316" metalness={0.8} />
+          </mesh>
+          {/* Main Boom Arm */}
+          <mesh position={[0, 2.2, 0.9]} rotation={[0.55, 0, 0]} castShadow>
+            <boxGeometry args={[0.3, 3.6, 0.3]} />
+            <meshStandardMaterial color="#ea580c" metalness={0.7} />
+          </mesh>
+          {/* Forearm Boom */}
+          <mesh position={[0, 3.8, 2.6]} rotation={[-0.1, 0, 0]} castShadow>
+            <boxGeometry args={[0.24, 0.24, 3.4]} />
+            <meshStandardMaterial color="#f97316" />
+          </mesh>
+          {/* Cable & Hoist Hook */}
+          <mesh position={[0, 2.7, 3.9]}>
+            <cylinderGeometry args={[0.03, 0.03, 2.0, 6]} />
+            <meshStandardMaterial color="#e2e8f0" metalness={0.9} />
+          </mesh>
+          <mesh position={[0, 1.6, 3.9]}>
+            <torusGeometry args={[0.22, 0.06, 8, 16]} />
+            <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.8} />
+          </mesh>
+        </group>
+
+        {/* High-Gain Dish on Habitat Roof */}
+        <mesh position={[-1.2, 5.6, -0.8]} rotation={[0.3, 0.4, 0]}>
+          <coneGeometry args={[0.8, 0.25, 16]} />
+          <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
         </mesh>
-        <mesh position={[0, 5.4, 0]}>
-          <sphereGeometry args={[0.22, 12, 12]} />
-          <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={1.5} />
-        </mesh>
-        <pointLight position={[0, 4.5, 0]} color="#38bdf8" intensity={4} distance={22} />
+        <pointLight position={[0, 5.5, 0]} color="#38bdf8" intensity={4} distance={25} />
       </group>
 
       {/* 2. Solar Energy Ridges */}
@@ -375,54 +429,83 @@ function WorldLandmarks({
         );
       })}
 
-      {/* 4. Astrobiology Science Rock Outcrops */}
+      {/* 4. Astrobiology Science Mineral Geode Crystals (Matching Concept Art Cyan Geodes) */}
       {scienceSamples.map(sample => {
         const sy = getTerrainHeight(sample.x, sample.z);
         return (
           <group key={sample.id} position={[sample.x, sy, sample.z]}>
-            <mesh position={[0, 0.6, 0]} castShadow>
-              <dodecahedronGeometry args={[0.95]} />
+            {/* Cluster of 5 Crystal Geode Spires */}
+            <mesh position={[0, 0.55, 0]} rotation={[0, 0.2, 0.1]} scale={[0.45, 1.3, 0.45]} castShadow>
+              <octahedronGeometry args={[1, 0]} />
               <meshStandardMaterial
-                color={sample.collected ? '#475569' : '#a855f7'}
-                emissive={sample.collected ? '#1e293b' : '#c084fc'}
-                emissiveIntensity={sample.collected ? 0.1 : 0.8}
-                roughness={0.2}
+                color={sample.collected ? '#475569' : '#06b6d4'}
+                emissive={sample.collected ? '#1e293b' : '#38bdf8'}
+                emissiveIntensity={sample.collected ? 0.1 : 1.2}
+                roughness={0.15}
+                metalness={0.85}
               />
             </mesh>
+            <mesh position={[-0.28, 0.4, 0.2]} rotation={[0.2, -0.3, -0.2]} scale={[0.35, 1.0, 0.35]} castShadow>
+              <octahedronGeometry args={[1, 0]} />
+              <meshStandardMaterial
+                color={sample.collected ? '#475569' : '#06b6d4'}
+                emissive={sample.collected ? '#1e293b' : '#38bdf8'}
+                emissiveIntensity={sample.collected ? 0.1 : 1.2}
+                roughness={0.15}
+                metalness={0.85}
+              />
+            </mesh>
+            <mesh position={[0.3, 0.38, -0.15]} rotation={[-0.2, 0.4, 0.25]} scale={[0.38, 1.1, 0.38]} castShadow>
+              <octahedronGeometry args={[1, 0]} />
+              <meshStandardMaterial
+                color={sample.collected ? '#475569' : '#06b6d4'}
+                emissive={sample.collected ? '#1e293b' : '#38bdf8'}
+                emissiveIntensity={sample.collected ? 0.1 : 1.2}
+                roughness={0.15}
+                metalness={0.85}
+              />
+            </mesh>
+
             {!sample.collected && (
               <>
-                <mesh position={[0, 16, 0]}>
-                  <cylinderGeometry args={[0.15, 0.25, 32, 8, 1, true]} />
-                  <meshBasicMaterial color="#c084fc" transparent opacity={0.4} side={THREE.DoubleSide} />
+                <mesh position={[0, 20, 0]}>
+                  <cylinderGeometry args={[0.12, 0.22, 40, 8, 1, true]} />
+                  <meshBasicMaterial color="#38bdf8" transparent opacity={0.4} side={THREE.DoubleSide} />
                 </mesh>
-                <pointLight position={[0, 1.5, 0]} color="#a855f7" intensity={2} distance={8} />
+                <pointLight position={[0, 1.8, 0]} color="#38bdf8" intensity={3} distance={12} />
               </>
             )}
           </group>
         );
       })}
 
-      {/* 5. Crashed Spacecraft Debris Sites */}
+      {/* 5. Crashed Spacecraft Debris Sites (Matching Concept Art Tilted Hull Debris & Sky Beacon) */}
       {debrisSites.map(debris => {
         const dy = getTerrainHeight(debris.x, debris.z);
         return (
           <group key={debris.id} position={[debris.x, dy, debris.z]}>
-            <mesh position={[0, 0.45, 0]} castShadow>
-              <torusGeometry args={[0.85, 0.25, 8, 12]} />
+            {/* Tilted Aerospace Hull Debris Wreckage */}
+            <mesh position={[0, 0.6, 0]} rotation={[0.45, 0.6, -0.3]} castShadow>
+              <boxGeometry args={[2.2, 0.12, 1.4]} />
               <meshStandardMaterial
-                color={debris.salvaged ? '#334155' : '#34d399'}
-                emissive={debris.salvaged ? '#0f172a' : '#10b981'}
-                emissiveIntensity={debris.salvaged ? 0.1 : 0.7}
+                color={debris.salvaged ? '#334155' : '#e2e8f0'}
                 metalness={0.9}
+                roughness={0.2}
               />
             </mesh>
+            <mesh position={[0.2, 0.7, 0.1]} rotation={[0.45, 0.6, -0.3]}>
+              <boxGeometry args={[2.3, 0.18, 0.15]} />
+              <meshStandardMaterial color="#1e293b" metalness={0.95} />
+            </mesh>
+
             {!debris.salvaged && (
               <>
-                <mesh position={[0, 16, 0]}>
-                  <cylinderGeometry args={[0.15, 0.25, 32, 8, 1, true]} />
-                  <meshBasicMaterial color="#34d399" transparent opacity={0.35} side={THREE.DoubleSide} />
+                {/* Vertical Blue/Cyan Sky Beacon Beam */}
+                <mesh position={[0, 22, 0]}>
+                  <cylinderGeometry args={[0.1, 0.2, 44, 8, 1, true]} />
+                  <meshBasicMaterial color="#60a5fa" transparent opacity={0.45} side={THREE.DoubleSide} />
                 </mesh>
-                <pointLight position={[0, 1.2, 0]} color="#10b981" intensity={2} distance={8} />
+                <pointLight position={[0, 1.5, 0]} color="#60a5fa" intensity={3} distance={12} />
               </>
             )}
           </group>
