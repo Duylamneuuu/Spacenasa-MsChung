@@ -70,6 +70,27 @@ export function OperationsView({ state, send }: OperationsViewProps) {
   const commsMaxRange = equippedComms.maxDistanceToLanderForComms ?? Infinity;
   const isCommsInRange = distToLander <= (commsMaxRange * 10); // Scale 3 grid tiles = ~30m
 
+  // Periodic decay timer: Radar detection of sand traps automatically fades after 12s
+  // Forces the player to mentally memorize hazardous terrain or scan again
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setSandTraps(prev => {
+        let changed = false;
+        const next = prev.map(trap => {
+          if (trap.revealed && trap.revealedUntil && now >= trap.revealedUntil) {
+            changed = true;
+            return { ...trap, revealed: false, revealedUntil: undefined };
+          }
+          return trap;
+        });
+        return changed ? next : prev;
+      });
+    }, 400);
+
+    return () => clearInterval(timer);
+  }, []);
+
   // Listen to keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -157,12 +178,13 @@ export function OperationsView({ state, send }: OperationsViewProps) {
       }
     }, 35);
 
-    // Reveal all sand traps within the scan pulse range!
+    // Reveal sand traps within range for 12 seconds only!
+    const expireTime = Date.now() + 12000;
     setSandTraps(prev =>
       prev.map(trap => {
         const dist = Math.hypot(telemetry.x - trap.x, telemetry.z - trap.z);
         if (dist <= maxPulseRadius + trap.radius) {
-          return { ...trap, revealed: true };
+          return { ...trap, revealed: true, revealedUntil: expireTime };
         }
         return trap;
       })

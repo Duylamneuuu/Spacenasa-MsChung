@@ -148,35 +148,25 @@ export function MarsMinimap({
             );
           })}
 
-          {/* Sand Traps (⚠️) */}
+          {/* Sand Traps (⚠️ Hidden by default, temporarily revealed by Radar pulse with countdown) */}
           {sandTraps.map(trap => {
+            if (!trap.revealed) return null; // Hidden under deceptive Martian dust!
             const { px, py, dist } = toMinimapCoords(trap.x, trap.z);
             if (dist > radarRadiusMeters) return null;
 
-            if (trap.revealed) {
-              // Fully revealed by Radar scan: Bright Red Warning
-              return (
-                <g key={trap.id} transform={`translate(${px}, ${py})`}>
-                  <circle r="8" fill="rgba(239, 68, 68, 0.35)" stroke="#ef4444" strokeWidth="1.5" />
-                  <circle r="3.5" fill="#ef4444" />
-                  <text x="6" y="-3" fill="#ef4444" fontSize="7" fontWeight="bold">DUNE</text>
-                </g>
-              );
-            } else {
-              // Unrevealed: Faint soft amber perimeter indicating dune ripples
-              return (
-                <circle
-                  key={trap.id}
-                  cx={px}
-                  cy={py}
-                  r="6"
-                  fill="rgba(217, 119, 6, 0.15)"
-                  stroke="#d97706"
-                  strokeWidth="1"
-                  strokeDasharray="2 2"
-                />
-              );
-            }
+            const secondsLeft = trap.revealedUntil
+              ? Math.max(0, Math.ceil((trap.revealedUntil - Date.now()) / 1000))
+              : null;
+
+            return (
+              <g key={trap.id} transform={`translate(${px}, ${py})`}>
+                <circle r="8" fill="rgba(239, 68, 68, 0.4)" stroke="#ef4444" strokeWidth="1.5" />
+                <circle r="3.5" fill="#ef4444" />
+                <text x="7" y="-2" fill="#ef4444" fontSize="7" fontWeight="bold">
+                  DUNE {secondsLeft !== null ? `${secondsLeft}s` : ''}
+                </text>
+              </g>
+            );
           })}
 
           {/* Science Rock Samples (💎) */}
@@ -214,13 +204,13 @@ export function MarsMinimap({
             );
           })}
 
-          {/* Center Rover Avatar with Heading Arrow */}
-          <g transform={`translate(${centerPx}, ${centerPx}) rotate(${(heading * 180) / Math.PI})`}>
+          {/* Center Rover Avatar with Exact Forward Heading Arrow (Synchronized with 3D travel vector) */}
+          <g transform={`translate(${centerPx}, ${centerPx}) rotate(${180 - (heading * 180) / Math.PI})`}>
             {/* Vision cone */}
-            <path d="M 0 0 L -12 -28 L 12 -28 Z" fill="rgba(56, 189, 248, 0.15)" />
-            {/* Vehicle arrow */}
-            <polygon points="0,-7 5,5 -5,5" fill="#38bdf8" />
-            <circle r="2.5" fill="#ffffff" />
+            <path d="M 0 0 L -12 -28 L 12 -28 Z" fill="rgba(56, 189, 248, 0.2)" />
+            {/* Vehicle arrow pointing forward */}
+            <polygon points="0,-8 6,6 -6,6" fill="#38bdf8" />
+            <circle r="3" fill="#ffffff" />
           </g>
         </svg>
       </div>

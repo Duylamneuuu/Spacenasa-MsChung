@@ -182,13 +182,13 @@ function GeologicalDioramaBase() {
         />
       </mesh>
 
-      {/* Golden Sand Dune Patch in Sand Trap Bowl */}
+      {/* Deceptive Sand Dune Patch in Sand Trap Bowl (Đồng màu với bụi đất Sao Hỏa) */}
       <mesh position={[1.2, -0.15, -0.6]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[2.5, 32]} />
         <meshStandardMaterial
-          color="#d97706"
-          roughness={0.95}
-          metalness={0.05}
+          color="#9a3412"
+          roughness={0.96}
+          metalness={0.04}
         />
       </mesh>
 
@@ -521,24 +521,28 @@ function SandTrapDiorama({
 
   return (
     <group position={[1.2, 0, -0.6]} onClick={onClick}>
-      {/* Silt Depression Shadow */}
+      {/* Silt Depression Shadow (Đồng màu với đất Sao Hỏa, ngụy trang tự nhiên) */}
       <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[2.2, 32]} />
-        <meshStandardMaterial color="#b45309" roughness={0.98} />
+        <meshStandardMaterial color="#7c2d12" roughness={0.98} />
       </mesh>
 
-      {/* Red Glowing Isometric Wireframe Hazard Grid */}
-      <group ref={gridRef} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.2, 2.2, 24]} />
-        <meshBasicMaterial color="#ef4444" wireframe transparent opacity={0.75} />
-      </group>
+      {/* Red Glowing Isometric Wireframe Hazard Grid (Chỉ hiện khi được quét/chọn) */}
+      {isSelected && (
+        <>
+          <group ref={gridRef} position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[1.2, 2.2, 24]} />
+            <meshBasicMaterial color="#ef4444" wireframe transparent opacity={0.85} />
+          </group>
 
-      {/* Floating Hazard Diamond Beacon */}
-      <mesh position={[0, 1.4, 0]} rotation={[0, Math.PI / 4, 0]}>
-        <octahedronGeometry args={[0.42]} />
-        <meshBasicMaterial color="#ef4444" wireframe />
-      </mesh>
-      <pointLight position={[0, 1.5, 0]} color="#ef4444" intensity={2.2} distance={5} />
+          {/* Floating Hazard Diamond Beacon */}
+          <mesh position={[0, 1.4, 0]} rotation={[0, Math.PI / 4, 0]}>
+            <octahedronGeometry args={[0.42]} />
+            <meshBasicMaterial color="#ef4444" wireframe />
+          </mesh>
+          <pointLight position={[0, 1.5, 0]} color="#ef4444" intensity={2.5} distance={5} />
+        </>
+      )}
 
       {/* 3D Holographic Pin */}
       <LandmarkPin
@@ -898,17 +902,40 @@ export function MissionScene({ state, onStationClick }: MissionSceneProps) {
       >
         <DioramaCameraRig rotationAngle={rotationAngle} />
 
-        {/* Deep Space Background & Warm Mars Lighting */}
-        <ambientLight intensity={1.2} />
+        {/* Authentic Mars Direct Sunlight & High-Contrast Shadows */}
+        <ambientLight intensity={0.82} color="#7c2d12" />
         <directionalLight
-          position={[12, 18, 10]}
-          intensity={2.8}
-          color="#ffedd5"
+          position={[14, 18, 12]}
+          intensity={3.2}
+          color="#fff7ed"
           castShadow
           shadow-mapSize={[1024, 1024]}
         />
         {/* Soft fill light from crater horizon */}
-        <directionalLight position={[-10, 8, -10]} intensity={0.6} color="#38bdf8" />
+        <directionalLight position={[-12, 8, -12]} intensity={0.4} color="#38bdf8" />
+
+        {/* Background Celestial Bodies (Mars Sun with Blue Halo, Earth & Moon) */}
+        <group position={[18, 22, -16]}>
+          <mesh>
+            <sphereGeometry args={[1.5, 16, 16]} />
+            <meshBasicMaterial color="#ffffff" />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[3.2, 16, 16]} />
+            <meshBasicMaterial color="#38bdf8" transparent opacity={0.35} />
+          </mesh>
+        </group>
+        {/* Earth "Pale Blue Dot" & Moon in distant backdrop */}
+        <group position={[-18, 20, -18]}>
+          <mesh>
+            <sphereGeometry args={[0.5, 12, 12]} />
+            <meshBasicMaterial color="#38bdf8" />
+          </mesh>
+          <mesh position={[1.2, 0.4, 0]}>
+            <sphereGeometry args={[0.16, 8, 8]} />
+            <meshBasicMaterial color="#f8fafc" />
+          </mesh>
+        </group>
 
         {/* 1. Geological Strata Block */}
         <GeologicalDioramaBase />

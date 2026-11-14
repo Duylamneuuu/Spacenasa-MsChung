@@ -75,6 +75,7 @@ export interface DebrisSite3D extends WorldObject3D {
 
 export interface SandTrap3D extends WorldObject3D {
   revealed: boolean;
+  revealedUntil?: number; // timestamp (ms) until when the radar detection remains active
 }
 
 // Center Lander Base Depot

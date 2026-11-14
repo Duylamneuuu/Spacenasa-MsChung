@@ -58,57 +58,78 @@ export interface MarsOpenWorldProps {
 }
 
 // =========================================================================
-// DEEP SPACE CANOPY & AUTHENTIC MARTIAN CELESTIAL ENVIRONMENT
-// (Stars, Martian Sun, Phobos Moon, Earth "Pale Blue Dot", Crater Rim Mountains)
+// DEEP SPACE CANOPY: AUTHENTIC MARTIAN SKY & SOLAR SYSTEM VANTAGE POINT
+// (Bầu trời nhìn từ Sao Hỏa: Mặt Trời xanh, Trái Đất/Mặt Trăng, Sao Mộc, Sao Thổ, Phobos, Deimos)
 // =========================================================================
 function DeepSpaceCanopy() {
-  // 1. Procedural 3D Starfield in deep space overhead
+  const phobosGroupRef = useRef<THREE.Group>(null);
+
+  // Animate Phobos rapid orbital transit across the Martian sky
+  useFrame((_, delta) => {
+    if (phobosGroupRef.current) {
+      phobosGroupRef.current.rotation.y += delta * 0.012; // Realistic fast orbital sweep
+    }
+  });
+
+  // 1. Procedural 3D Starfield & Milky Way Galaxy in deep space
   const { starPositions, starColors } = useMemo(() => {
-    const starCount = 2200;
+    const starCount = 3200;
     const pos = new Float32Array(starCount * 3);
     const col = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i++) {
-      // Hemisphere distribution above horizon (Y: 25 to 190, Radius ~180 to 220)
-      const u = Math.random();
-      const v = Math.random();
-      const theta = u * 2.0 * Math.PI;
-      const phi = Math.acos(2.0 * v - 1.0); // uniform sphere
-      const r = 190 + Math.random() * 40;
+      // 60% uniform hemisphere, 40% concentrated along Milky Way galactic arch
+      const isMilkyWay = i > starCount * 0.6;
+      let theta: number;
+      let phi: number;
+      const r = 195 + Math.random() * 35;
+
+      if (isMilkyWay) {
+        // Galactic plane arc
+        theta = (Math.random() - 0.5) * Math.PI * 1.8;
+        phi = Math.PI * 0.35 + (Math.random() - 0.5) * 0.32;
+      } else {
+        const u = Math.random();
+        const v = Math.random();
+        theta = u * 2.0 * Math.PI;
+        phi = Math.acos(2.0 * v - 1.0);
+      }
 
       const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = Math.abs(r * Math.cos(phi)) + 25; // keep above horizon
+      const y = Math.abs(r * Math.cos(phi)) + 18; // Above horizon
       const z = r * Math.sin(phi) * Math.sin(theta);
 
       pos[i * 3] = x;
       pos[i * 3 + 1] = y;
       pos[i * 3 + 2] = z;
 
-      // Color tints: White, cyan-blue, subtle amber stars
+      // Real stellar color temperatures (O/B blue-white, G yellow, M orange-red)
       const tint = Math.random();
-      if (tint > 0.8) {
-        col[i * 3] = 0.75; col[i * 3 + 1] = 0.88; col[i * 3 + 2] = 1.0; // blue star
-      } else if (tint > 0.65) {
-        col[i * 3] = 1.0; col[i * 3 + 1] = 0.85; col[i * 3 + 2] = 0.65; // golden star
+      if (tint > 0.85) {
+        col[i * 3] = 0.7; col[i * 3 + 1] = 0.85; col[i * 3 + 2] = 1.0; // Blue supergiant
+      } else if (tint > 0.7) {
+        col[i * 3] = 1.0; col[i * 3 + 1] = 0.88; col[i * 3 + 2] = 0.65; // Solar type
+      } else if (tint > 0.6) {
+        col[i * 3] = 1.0; col[i * 3 + 1] = 0.65; col[i * 3 + 2] = 0.5; // Red giant
       } else {
-        col[i * 3] = 0.95; col[i * 3 + 1] = 0.95; col[i * 3 + 2] = 0.95; // white star
+        col[i * 3] = 0.96; col[i * 3 + 1] = 0.96; col[i * 3 + 2] = 0.96; // Pure white
       }
     }
 
     return { starPositions: pos, starColors: col };
   }, []);
 
-  // 2. Horizon Crater Rim Mountain Chain (28 jagged peaks enclosing the crater floor)
+  // 2. Horizon Crater Rim Mountain Chain (32 jagged peaks enclosing Jezero Crater floor)
   const mountainPeaks = useMemo(() => {
     const peaks = [];
-    const count = 28;
+    const count = 32;
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-      const dist = 145 + Math.sin(i * 3.7) * 18;
+      const dist = 148 + Math.sin(i * 3.7) * 16;
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
-      const height = 32 + Math.sin(i * 2.3) * 16 + (i % 3) * 10;
-      const radius = 22 + Math.cos(i * 1.7) * 8;
+      const height = 34 + Math.sin(i * 2.3) * 18 + (i % 3) * 12;
+      const radius = 24 + Math.cos(i * 1.7) * 8;
       peaks.push({ id: i, x, z, height, radius });
     }
     return peaks;
@@ -116,71 +137,162 @@ function DeepSpaceCanopy() {
 
   return (
     <group>
-      {/* A. 3D Stars in Deep Space */}
+      {/* ================= 1. MARTIAN ATMOSPHERIC DUST DOME ================= */}
+      {/* Butterscotch / Salmon peach scattering near horizon fading to deep cosmos black at zenith */}
+      <mesh position={[0, -20, 0]}>
+        <sphereGeometry args={[225, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+        <meshBasicMaterial
+          color="#8b3a22"
+          side={THREE.BackSide}
+          transparent
+          opacity={0.32}
+        />
+      </mesh>
+
+      {/* ================= 2. 3D DEEP SPACE STARS & MILKY WAY ================= */}
       <points>
         <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[starPositions, 3]}
-          />
-          <bufferAttribute
-            attach="attributes-color"
-            args={[starColors, 3]}
-          />
+          <bufferAttribute attach="attributes-position" args={[starPositions, 3]} />
+          <bufferAttribute attach="attributes-color" args={[starColors, 3]} />
         </bufferGeometry>
-        <pointsMaterial
-          size={1.2}
-          vertexColors
-          transparent
-          opacity={0.88}
-          sizeAttenuation
-        />
+        <pointsMaterial size={1.25} vertexColors transparent opacity={0.92} sizeAttenuation />
       </points>
 
-      {/* B. The Pale Blue Dot: Earth as seen from Mars (225 Million km away) */}
-      <group position={[110, 95, -135]}>
+      {/* ================= 3. SOLAR SYSTEM AS SEEN FROM MARS (1.52 AU) ================= */}
+
+      {/* A. THE MARTIAN SUN (Mặt Trời nhìn từ Sao Hỏa: Nhỏ hơn 65% Trái Đất + Hào quang xanh cerulean đặc trưng) */}
+      <group position={[75, 115, 60]}>
+        {/* Sharp core solar disk (1.52 AU size) */}
         <mesh>
-          <sphereGeometry args={[0.7, 16, 16]} />
-          <meshBasicMaterial color="#60a5fa" />
+          <sphereGeometry args={[3.6, 24, 24]} />
+          <meshBasicMaterial color="#ffffff" />
         </mesh>
+        {/* Signature Martian Blue Dust-Scattering Halo (Hiện tượng hoàng hôn/vầng hào quang xanh Sao Hỏa do bụi Fe2O3 tán xạ) */}
         <mesh>
-          <sphereGeometry args={[1.5, 16, 16]} />
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.35} />
+          <sphereGeometry args={[7.2, 24, 24]} />
+          <meshBasicMaterial color="#38bdf8" transparent opacity={0.38} />
         </mesh>
-        <pointLight color="#60a5fa" intensity={2} distance={25} />
+        {/* Outer Solar Tawny Corona */}
+        <mesh>
+          <sphereGeometry args={[14.0, 24, 24]} />
+          <meshBasicMaterial color="#fef08a" transparent opacity={0.16} />
+        </mesh>
       </group>
 
-      {/* C. Phobos (Mars's innermost moon) */}
-      <group position={[-85, 82, -125]}>
-        {/* Irregular cratered moon geometry */}
-        <mesh rotation={[0.4, 0.8, 0.2]}>
-          <dodecahedronGeometry args={[5.2, 1]} />
-          <meshStandardMaterial color="#78716c" roughness={0.9} metalness={0.1} />
+      {/* B. INNER PLANET 1: MERCURY (Sao Thủy - Điểm sáng bạc gần Mặt Trời) */}
+      <group position={[58, 102, 48]}>
+        <mesh>
+          <sphereGeometry args={[0.42, 12, 12]} />
+          <meshBasicMaterial color="#e2e8f0" />
         </mesh>
-        {/* Faint moonlit atmospheric glow */}
-        <pointLight color="#e7e5e4" intensity={1.5} distance={40} />
+        <mesh>
+          <sphereGeometry args={[0.9, 12, 12]} />
+          <meshBasicMaterial color="#cbd5e1" transparent opacity={0.4} />
+        </mesh>
       </group>
 
-      {/* D. The Martian Sun (Compact bright disk at 1.52 AU with soft atmospheric corona) */}
-      <group position={[80, 110, 65]}>
-        {/* Sharp core solar disk */}
+      {/* C. INNER PLANET 2: VENUS (Sao Kim - Ngôi sao mai/hôm chói lóa nhất trên bầu trời) */}
+      <group position={[38, 88, 32]}>
         <mesh>
-          <sphereGeometry args={[4.2, 24, 24]} />
+          <sphereGeometry args={[0.85, 16, 16]} />
           <meshBasicMaterial color="#fffbeb" />
         </mesh>
-        {/* Outer Tawny Coronal Glow */}
         <mesh>
-          <sphereGeometry args={[8.5, 24, 24]} />
-          <meshBasicMaterial color="#fef08a" transparent opacity={0.25} />
+          <sphereGeometry args={[2.0, 16, 16]} />
+          <meshBasicMaterial color="#fef08a" transparent opacity={0.5} />
         </mesh>
       </group>
 
-      {/* E. Distant Crater Rim Mountain Backdrop (Jezero Crater wall) */}
+      {/* D. INNER PLANET 3: EARTH & THE MOON (Trái Đất & Mặt Trăng - Ngôi Sao Kép Xanh Lam kỳ vĩ) */}
+      <group position={[115, 92, -130]}>
+        {/* Planet Earth: Vibrant Pale Blue Dot */}
+        <mesh>
+          <sphereGeometry args={[1.2, 16, 16]} />
+          <meshBasicMaterial color="#38bdf8" />
+        </mesh>
+        {/* Atmospheric Blue Glow */}
+        <mesh>
+          <sphereGeometry args={[2.4, 16, 16]} />
+          <meshBasicMaterial color="#60a5fa" transparent opacity={0.4} />
+        </mesh>
+
+        {/* Earth's Moon: Small silver companion orb orbiting right beside Earth */}
+        <group position={[2.6, 0.8, -0.6]}>
+          <mesh>
+            <sphereGeometry args={[0.38, 12, 12]} />
+            <meshBasicMaterial color="#f8fafc" />
+          </mesh>
+        </group>
+        <pointLight color="#38bdf8" intensity={2.5} distance={30} />
+      </group>
+
+      {/* E. OUTER PLANET 1: JUPITER & 4 GALILEAN MOONS (Sao Mộc & 4 Vệ Tinh Io, Europa, Ganymede, Callisto) */}
+      <group position={[-125, 105, -70]}>
+        {/* Giant Jupiter Golden Orb */}
+        <mesh>
+          <sphereGeometry args={[2.2, 20, 20]} />
+          <meshBasicMaterial color="#fde047" />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[4.2, 20, 20]} />
+          <meshBasicMaterial color="#facc15" transparent opacity={0.3} />
+        </mesh>
+
+        {/* 4 Galilean Moons aligned in orbital plane */}
+        {[-3.6, -1.8, 1.9, 3.8].map((offset, idx) => (
+          <mesh key={idx} position={[offset, offset * 0.15, 0]}>
+            <sphereGeometry args={[0.22, 8, 8]} />
+            <meshBasicMaterial color="#ffffff" />
+          </mesh>
+        ))}
+      </group>
+
+      {/* F. OUTER PLANET 2: SATURN & RINGS (Sao Thổ & Vành Đai Nghiêng) */}
+      <group position={[-80, 95, 110]} rotation={[0.4, 0.6, 0.2]}>
+        {/* Saturn Planet Sphere */}
+        <mesh>
+          <sphereGeometry args={[1.5, 16, 16]} />
+          <meshBasicMaterial color="#fcd34d" />
+        </mesh>
+        {/* Saturn Tilted Planetary Ring */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[2.0, 3.8, 32]} />
+          <meshBasicMaterial color="#eab308" transparent opacity={0.65} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+
+      {/* G. MARS SATELLITE 1: PHOBOS (Vệ tinh Phobos - Củ khoai tây có hố va chạm Stickney, quay nhanh) */}
+      <group ref={phobosGroupRef}>
+        <group position={[-92, 84, -120]} rotation={[0.3, 0.7, 0.4]}>
+          {/* Irregular cratered moon mesh */}
+          <mesh castShadow>
+            <dodecahedronGeometry args={[5.4, 1]} />
+            <meshStandardMaterial color="#78716c" roughness={0.92} metalness={0.08} />
+          </mesh>
+          {/* Stickney Crater Depression */}
+          <mesh position={[2.8, 1.2, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <torusGeometry args={[1.8, 0.45, 8, 16]} />
+            <meshStandardMaterial color="#57534e" roughness={0.95} />
+          </mesh>
+          <pointLight color="#e7e5e4" intensity={1.4} distance={45} />
+        </group>
+      </group>
+
+      {/* H. MARS SATELLITE 2: DEIMOS (Vệ tinh Deimos - Chấm sao nhỏ sáng ổn định ở xa) */}
+      <group position={[65, 125, -95]}>
+        <mesh>
+          <dodecahedronGeometry args={[1.8, 1]} />
+          <meshStandardMaterial color="#a8a29e" roughness={0.9} />
+        </mesh>
+        <pointLight color="#d6d3d1" intensity={0.9} distance={25} />
+      </group>
+
+      {/* ================= 4. DISTANT CRATER RIM MOUNTAIN BACKDROP ================= */}
       {mountainPeaks.map(peak => (
         <mesh key={peak.id} position={[peak.x, peak.height * 0.45, peak.z]}>
-          <coneGeometry args={[peak.radius, peak.height, 5]} />
+          <coneGeometry args={[peak.radius, peak.height, 6]} />
           <meshStandardMaterial
-            color="#571a08"
+            color="#451a03"
             roughness={0.95}
             metalness={0.05}
             flatShading
@@ -192,8 +304,8 @@ function DeepSpaceCanopy() {
 }
 
 // =========================================================================
-// PROCEDURAL MARS TERRAIN MESH WITH DISTINCT SULFATE SAND DUNE ZONES
-// (Màu cát lún vàng-cam gợn sóng tách biệt hoàn toàn với đá cứng thường)
+// PROCEDURAL MARS TERRAIN MESH WITH COHESIVE REGOLITH PALETTE
+// (Cát lún đồng màu với mặt đất Sao Hỏa, ngụy trang tự nhiên dưới lớp bụi oxit sắt)
 // =========================================================================
 function ProceduralMarsTerrain() {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -207,15 +319,11 @@ function ProceduralMarsTerrain() {
     const count = pos.count;
     const colorArr = new Float32Array(count * 3);
 
-    // Bedrock color palette (Đá cứng basalt sẫm màu)
-    const bedrockDark = new THREE.Color('#431407');  // Deep canyon rock
-    const bedrockMid = new THREE.Color('#7c2d12');   // Standard red bedrock
-    const bedrockHigh = new THREE.Color('#9a3412');  // Weathered rocky ridge
-
-    // Sand Trap Dune palette (Cát lún vàng sunfat bột mềm có vân gợn sóng)
-    const sandBase = new THREE.Color('#d97706');    // Rich golden sand
-    const sandBright = new THREE.Color('#facc15');  // Bright sulfur ripple crest
-    const sandShadow = new THREE.Color('#92400e');  // Dark dune ripple trough
+    // Authentic Mars Bedrock & Regolith Palette (Đá nền basalt và bụi oxit sắt đỏ đất)
+    const bedrockDark = new THREE.Color('#381206');  // Deep shadow basalt
+    const bedrockMid = new THREE.Color('#6c2810');   // Standard red bedrock
+    const bedrockHigh = new THREE.Color('#8b3416');  // Weathered rocky ridge
+    const sandSubtle = new THREE.Color('#5c200c');   // Deceptive sand trap (đồng màu với đất)
 
     for (let i = 0; i < count; i++) {
       const vx = pos.getX(i);
@@ -227,34 +335,25 @@ function ProceduralMarsTerrain() {
       let sandTrapFactor = 0;
       for (const trap of INITIAL_SAND_TRAPS_3D) {
         const dist = Math.hypot(vx - trap.x, vz - trap.z);
-        if (dist <= trap.radius + 3.5) {
-          const factor = Math.max(0, 1 - dist / (trap.radius + 3.5));
+        if (dist <= trap.radius + 3.0) {
+          const factor = Math.max(0, 1 - dist / (trap.radius + 3.0));
           if (factor > sandTrapFactor) sandTrapFactor = factor;
         }
       }
 
       const finalColor = new THREE.Color();
 
-      if (sandTrapFactor > 0.05) {
-        // --- SAND TRAP ZONE: Distinct Golden Sulfate Sand Dunes with Ripples ---
-        // Fine transverse ripple waves across the sand
-        const ripple = Math.sin(vx * 1.8 + vz * 1.8) * 0.5 + 0.5;
-        const duneColor = new THREE.Color().lerpColors(sandShadow, sandBright, ripple);
-
-        // Bedrock at this height
-        const elevNorm = (vy + 8) / 16;
-        const rockColor = new THREE.Color().lerpColors(bedrockDark, bedrockMid, elevNorm);
-
-        // Blend smoothly into the golden sand dune
-        finalColor.lerpColors(rockColor, duneColor, Math.min(1, sandTrapFactor * 1.4));
+      // Elevation based bedrock gradient
+      const elevNorm = Math.min(1, Math.max(0, (vy + 6) / 14));
+      if (elevNorm > 0.5) {
+        finalColor.lerpColors(bedrockMid, bedrockHigh, (elevNorm - 0.5) * 2);
       } else {
-        // --- NORMAL BEDROCK: Dark hard cracked volcanic basalt ---
-        const elevNorm = Math.min(1, Math.max(0, (vy + 6) / 14));
-        if (elevNorm > 0.5) {
-          finalColor.lerpColors(bedrockMid, bedrockHigh, (elevNorm - 0.5) * 2);
-        } else {
-          finalColor.lerpColors(bedrockDark, bedrockMid, elevNorm * 2);
-        }
+        finalColor.lerpColors(bedrockDark, bedrockMid, elevNorm * 2);
+      }
+
+      // Sand trap blends seamlessly with terrain, only subtle powdery dust shift
+      if (sandTrapFactor > 0.05) {
+        finalColor.lerp(sandSubtle, Math.min(0.7, sandTrapFactor * 0.8));
       }
 
       colorArr[i * 3] = finalColor.r;
@@ -271,11 +370,65 @@ function ProceduralMarsTerrain() {
     <mesh ref={meshRef} geometry={geometry} receiveShadow>
       <meshStandardMaterial
         vertexColors
-        roughness={0.92}
-        metalness={0.08}
+        roughness={0.94}
+        metalness={0.06}
         flatShading={false}
       />
     </mesh>
+  );
+}
+
+// =========================================================================
+// SCATTERED MARTIAN BOULDER FIELD (75+ tảng đá basalt góc cạnh đổ bóng sắc nét)
+// =========================================================================
+function MartianRockField() {
+  const rocks = useMemo(() => {
+    const list = [];
+    const count = 75;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + (i % 7) * 0.25;
+      const dist = 14 + (Math.sin(i * 3.7) * 0.5 + 0.5) * 98;
+      const x = Math.cos(angle) * dist;
+      const z = Math.sin(angle) * dist;
+      const y = getTerrainHeight(x, z);
+      const scaleX = 0.45 + Math.abs(Math.sin(i * 2.3)) * 1.5;
+      const scaleY = 0.35 + Math.abs(Math.cos(i * 3.1)) * 1.1;
+      const scaleZ = 0.45 + Math.abs(Math.sin(i * 1.7)) * 1.4;
+      const rotY = (i * 47) % 360;
+      const rotX = Math.sin(i) * 0.25;
+      list.push({
+        id: i,
+        x,
+        y,
+        z,
+        scale: [scaleX, scaleY, scaleZ] as [number, number, number],
+        rot: [rotX, rotY, 0] as [number, number, number],
+      });
+    }
+    return list;
+  }, []);
+
+  return (
+    <group>
+      {rocks.map(r => (
+        <mesh
+          key={r.id}
+          position={[r.x, r.y + r.scale[1] * 0.42, r.z]}
+          rotation={r.rot}
+          scale={r.scale}
+          castShadow
+          receiveShadow
+        >
+          <dodecahedronGeometry args={[0.85, 0]} />
+          <meshStandardMaterial
+            color="#2d150c"
+            roughness={0.92}
+            metalness={0.15}
+            flatShading
+          />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
@@ -394,35 +547,35 @@ function WorldLandmarks({
         );
       })}
 
-      {/* 3. 6 Sand Trap Dune Fields (Physical Golden Dune Ribs & Laser Danger Signs) */}
+      {/* 3. 6 Sand Trap Dune Fields (Deceptively blends into Martian regolith until scanned by Radar) */}
       {sandTraps.map(trap => {
         const ty = getTerrainHeight(trap.x, trap.z);
         return (
           <group key={trap.id} position={[trap.x, ty, trap.z]}>
-            {/* Physical Sand Dune Mound Discs (Always visible so player sees the dune texture) */}
-            <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            {/* Subtle soft silt layer matching surrounding Martian soil */}
+            <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
               <circleGeometry args={[trap.radius, 32]} />
               <meshStandardMaterial
-                color="#d97706"
+                color="#5c200c"
                 roughness={0.98}
                 metalness={0.02}
                 transparent
-                opacity={0.7}
+                opacity={0.3}
               />
             </mesh>
 
-            {/* Radar-Revealed Holographic Warning Rings */}
+            {/* Radar-Revealed Holographic Warning Rings (Temporarily active for 12s after pulse) */}
             {trap.revealed && (
               <>
                 <mesh position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                   <ringGeometry args={[trap.radius - 1.2, trap.radius, 32]} />
-                  <meshBasicMaterial color="#ef4444" side={THREE.DoubleSide} transparent opacity={0.8} />
+                  <meshBasicMaterial color="#ef4444" side={THREE.DoubleSide} transparent opacity={0.85} />
                 </mesh>
                 <mesh position={[0, 3.2, 0]} rotation={[0, Math.PI / 4, 0]}>
                   <octahedronGeometry args={[0.9]} />
                   <meshBasicMaterial color="#ef4444" wireframe />
                 </mesh>
-                <pointLight position={[0, 3.5, 0]} color="#ef4444" intensity={2.5} distance={16} />
+                <pointLight position={[0, 3.5, 0]} color="#ef4444" intensity={2.8} distance={18} />
               </>
             )}
           </group>
@@ -1112,34 +1265,40 @@ export function MarsOpenWorld(props: MarsOpenWorldProps) {
         shadows
         camera={{ position: [0, 8, -12], fov: 62, near: 0.1, far: 600 }}
       >
-        {/* Martian Twilight Atmosphere Background */}
-        <color attach="background" args={['#0e090a']} />
-        <fog attach="fog" args={['#1a0f0a', 38, 210]} />
+        {/* Authentic Martian Atmosphere Background */}
+        <color attach="background" args={['#080406']} />
+        <fog attach="fog" args={['#3e160e', 45, 230]} />
 
-        {/* Dynamic Mars Sun Lighting */}
-        <ambientLight intensity={0.95} color="#fed7aa" />
+        {/* Authentic Martian Direct Sunlight: Sharp High-Contrast Shadows */}
+        <ambientLight intensity={0.78} color="#7c2d12" />
         <directionalLight
-          position={[80, 110, 65]}
-          intensity={2.9}
-          color="#fef08a"
+          position={[75, 115, 60]}
+          intensity={3.2}
+          color="#fff7ed"
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
           shadow-camera-near={10}
-          shadow-camera-far={280}
-          shadow-camera-left={-65}
-          shadow-camera-right={65}
-          shadow-camera-top={65}
-          shadow-camera-bottom={-65}
+          shadow-camera-far={300}
+          shadow-camera-left={-75}
+          shadow-camera-right={75}
+          shadow-camera-top={75}
+          shadow-camera-bottom={-75}
+          shadow-bias={-0.0004}
         />
+        {/* Cold Deep Sky Fill */}
+        <directionalLight position={[-70, 60, -70]} intensity={0.32} color="#38bdf8" />
 
-        {/* Deep Space Canopy (Stars, Earth Pale Blue Dot, Moon Phobos, Sun, Mountain Rim) */}
+        {/* Deep Space Canopy (Martian Sky, Blue Sun Halo, Earth/Moon, Jupiter, Saturn, Phobos, Milky Way) */}
         <DeepSpaceCanopy />
 
-        {/* Mars Procedural 3D Terrain with Distinct Golden Sulfate Sand Dunes */}
+        {/* Mars Procedural 3D Terrain */}
         <ProceduralMarsTerrain />
 
-        {/* 3D Landmarks & Sand Dunes */}
+        {/* Scattered 3D Martian Boulders and Rocks (75+ faceted rocks casting sharp shadows) */}
+        <MartianRockField />
+
+        {/* 3D Landmarks & Concealed Sand Dunes */}
         <WorldLandmarks
           sandTraps={props.sandTraps}
           scienceSamples={props.scienceSamples}
