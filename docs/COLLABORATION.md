@@ -7,15 +7,17 @@
 Code ownership (by folders) and Git branches are different:
 - Duy: `src/App.tsx`, `src/ui/`, `src/styles.css`, integrator, `package.json`
 - Bảo: `src/scene/`, `public/assets/3d/`
-- Hải: `src/sim/`, `src/data/`, simulation tests
-- Sơn: `docs/science/` science sources, assumptions, data review
-- Cường: `docs/design/`, `public/assets/ui/`, design and pitch
+- Hải: `src/sim/`, simulation and rule tests — **consumes** data, does not own it
+- Sơn: `src/data/`, `docs/science/` — NASA sources, structured data, units, assumptions
+- Cường: `src/content/`, `docs/design/`, `public/assets/ui/` — story, events, game flow, design and pitch
+
+**Workstream 4 — Sơn + Cường:** both use `feat/content-data`, but own separate folders. Coordinate commits/pulls so neither overwrites the other's work.
 
 **Shared contracts:** `src/types/game.ts` and `docs/INTERFACES.md`. Duy coordinates proposed interface changes *before* they are coded. Every module should compile with its neighbor's placeholder.
 
 ## Branch workflow — fast, safe, visible
 
-Existing branches are `feat/ui` (Duy), `feat/scene` (Bảo), `feat/simulation` (Hải). Use these for first PRs. For subsequent tasks, prefer short-lived branches such as `feat/scene-launch-effect` from the *latest main*.
+Four workstream branches are `feat/ui` (Duy), `feat/scene` (Bảo), `feat/simulation` (Hải), and `feat/content-data` (Sơn + Cường). Use these for first PRs. For subsequent tasks, prefer short-lived branches such as `feat/scene-launch-effect` from the *latest main*.
 
 ```bash
 git clone https://github.com/Duylamneuuu/Spacenasa-MsChung.git
@@ -54,6 +56,15 @@ git push origin feat/scene
 
 Never force-push another person's branch or overwrite its changes.
 
+## Workstream 4 procedure (Sơn + Cường)
+
+- Cường defines mission narrative, event options and player-facing text in `src/content/`, with UX assets / references in `docs/design/`.
+- Sơn validates actual NASA facts, numbers, mission constraints and sources in `src/data/` and `docs/science/`.
+- Both work on `feat/content-data` and run `git pull --ff-only origin feat/content-data` before starting their next commit.
+- Never let an agent edit `src/sim/`, `src/App.tsx`, shared types or both owners' files from this branch without agreement.
+- Post a Draft PR early so Hải can review the schema and consume mock content without blocking.
+- See `docs/CONTENT_DATA.md` for deliverables.
+
 ## Update routine (throughout the day, not just once per day)
 
 - Every 60–120 min: push a coherent working commit to the branch.
@@ -83,6 +94,6 @@ Duy should invite the other contributors at GitHub **Settings → Collaborators*
 
 ## MVP discipline
 
-Game logic (Hải) must be plain TypeScript with no React/Three.js imports. Scene (Bảo) only renders state and emits clicks. UI (Duy) routes clicks to simulation and renders the results. Both Cường and Sơn can give design/science inputs without editing the app entrypoint.
+Game logic (Hải) must be plain TypeScript with no React/Three.js imports. Scene (Bảo) only renders state and emits clicks. UI (Duy) routes clicks to simulation and renders the results. Sơn and Cường own the input data and game content, without editing the app entrypoint. Hải imports those sources and implements their effects; Duy coordinates cross-module integration.
 
 Current `src/sim/engine.ts` and `src/scene/MissionScene.tsx` are **wiring-only placeholders**, not validated game mechanics or NASA mission calculations.
