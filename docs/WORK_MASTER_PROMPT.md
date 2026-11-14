@@ -1,3 +1,5 @@
+> **HISTORICAL BUILD PROMPT (14 Nov 2026).** This is the prompt used to build the game. The game is now built and live at https://apogee-mars-rover.vercel.app/. Some rules below are out of date: the game is English by default with an optional **EN / VI** switch, and the drive starts with **Start drive** after planning. For the current state read [README](../README.md), [IMPLEMENTATION_HANDOFF](IMPLEMENTATION_HANDOFF.md), [INTERFACES](INTERFACES.md), [APOGEE_GDD](APOGEE_GDD.md) and [DEMO_QA](design/DEMO_QA.md).
+
 # CHATGPT WORK MASTER PROMPT — APOGEE v2 (PLAN & DRIVE)
 **Copy this complete document into ChatGPT Work with GitHub connected.**
 

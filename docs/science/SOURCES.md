@@ -2,8 +2,8 @@
 
 > **Project:** APOGEE — Mars Rover Architect (Team MS Chung)  
 > **Competition:** NASA Space Apps Challenge 2026 — Challenge 13: *Space Mission Design Game*  
-> **Specification Alignment:** Approved GDD v2 (**Plan & Drive**, English-only player experience)  
-> **Baseline Audit:** `main` (`7606934`); **Playable Integration:** PR #7 (`58206fc`) · **Verification Date:** 2026-11-14
+> **Specification Alignment:** Approved GDD v2 (**Plan & Drive**; English default and judged language, optional EN / VI switch)  
+> **Checked against:** current `main` (live at https://apogee-mars-rover.vercel.app/) · **Verification Date:** 2026-11-14
 
 ---
 
@@ -14,7 +14,7 @@ APOGEE is an **educational space mission trade-off simulator**, not flight-certi
 Every mechanism in this document is explicitly separated into three categories:
 1. **Verified NASA / JPL Physical Fact:** Supported directly by primary NASA/JPL/NTRS references listed below (destination titled and checked against the cited content on 2026-11-14).
 2. **Approved Gameplay Rule (`GAME BALANCE — NOT NASA DATA`):** Fictional numerical parameters defined in `docs/APOGEE_GDD.md` for balanced 3–5 minute educational decision-making.
-3. **Current Codebase Verification (`origin/main` @ `7606934`):** Whether the rule is actually present in `src/` today or still awaiting the **Plan & Drive** migration. No reference in this file is claimed to drive gameplay unless directly verified in code.
+3. **Current Codebase Verification (`main`):** Whether the rule is present in `src/sim/expedition.ts` and `src/data/expedition.ts`. No reference in this file is claimed to drive gameplay unless directly verified in code.
 
 ---
 
@@ -62,22 +62,22 @@ All numeric units, currencies, scores, and multipliers specified for APOGEE v2 (
 | Parameter / System | Approved GDD v2 Value (`GAME BALANCE — NOT NASA DATA`) | Engineering Concept Taught |
 |---|---|---|
 | **Battery Capacity & Safety Reserve** | `0–100 EU` (Energy Units); low-battery warning below `15 EU` | Finite surface energy budget; reserve margin for communications and recovery |
-| **Action Costs (Baseline)** | Base drive `5 EU / segment` in the GDD; PR #7 tunes it to `4.8 EU` per 4.4 m before terrain, wheel, load, and roughness factors; `SCAN = 6 EU`; `ANALYZE = 12 EU`; `TRANSMIT = 6 EU` | Power allocation between mobility, sensing, science sampling, and DSN uplink |
-| **Solar Recharge Rate** | `+8 EU per 10 min` stopped in adequate sunlight (reduced/blocked in shadowed canyons or storms) | Charging trades mission time for energy recovery and depends on illumination |
-| **W1 — Light Wheel** | Hard `0.80×` · Soft Sand `1.80×` · Sharp Rock `1.60×` · Slope `1.40×` | Lowest mass and highest efficiency on firm ground; poor sand/sharp-rock performance |
-| **W2 — Wide Traction Wheel** | Hard `1.25×` · Soft Sand `0.85×` · Sharp Rock `1.25×` · Slope `1.10×` | Improved flotation and efficiency in soft sand; higher rolling resistance on hard flat rock |
-| **W3 — Reinforced Wheel** | Hard `1.15×` · Soft Sand `1.30×` · Sharp Rock `0.75×` · Slope `1.00×` | Higher mass/budget cost in exchange for durability on jagged rocks and slopes |
+| **Action Costs** | The game uses `4.8 EU` per 4.4 m tile before terrain, wheel, load and roughness factors; `SCAN = 6 EU` (Navigation Camera) or `8 EU` (Stereo); `ANALYZE = 12 EU` (Rock Analyzer) or `16 EU` (Spectrometer); `TRANSMIT = 6 EU` | Power allocation between mobility, sensing, science sampling, and DSN uplink |
+| **Solar Recharge Rate** | `0.8 EU/min × illumination` while parked, in 10- or 20-minute windows (`+8 EU per 10 min` in full light); blocked below 25% light, e.g. the shadowed corner of the map | Charging trades mission time for energy recovery and depends on illumination |
+| **W1 — Light Wheel** | Energy: Hard `0.80×` · Soft Sand `1.80×` · Sharp Rock `1.60×`; 14 kg, 10 budget | Lowest mass and highest efficiency on firm ground; poor sand/sharp-rock performance |
+| **W2 — Wide Traction Wheel** | Energy: Hard `1.25×` · Soft Sand `0.85×` · Sharp Rock `1.25×`; 32 kg, 23 budget | Improved flotation and efficiency in soft sand; higher rolling resistance on firm ground |
+| **W3 — Reinforced Wheel** | Energy: Hard `1.15×` · Soft Sand `1.30×` · Sharp Rock `0.75×`; 39 kg, 29 budget | Higher mass/budget cost in exchange for durability on jagged rocks (slopes are not in the current map) |
 | **Science Score & Research Credits (`RC`)** | Cumulative `Science Score`; one-time fictional `RC` granted per newly transmitted site discovery (not NASA paying per rock/MB) | Distinguishes scientific return from game progression unlocks; prevents infinite rescanning |
 | **Total Deployed Mass** | `Lander + Rover Base + Installed Modules + Carried Spares + Support Equipment` | Spares packed for Lander Garage swaps still impose mass trade-offs |
 
 ---
 
-## 4. Playable Implementation and Baseline Audit
+## 4. Current Implementation and Historical Baseline
 
-**Playable PR #7, tested commit `58206fc`.** The game's [sunlight function](https://github.com/Duylamneuuu/Spacenasa-MsChung/blob/58206fc16292dbafd2bc0b1f1c9092bf0c5ea390/src/sim/expedition.ts) uses the [24.6-hour Martian sol](https://science.nasa.gov/mars/facts/) as the period of a simplified daylight curve. The light threshold, terrain factors, EU charge rate, RC, and wheel balance are fictional. The map has one area with reduced illumination; it does not simulate dust events or atmospheric physics. The [tested build handoff](https://github.com/Duylamneuuu/Spacenasa-MsChung/blob/58206fc16292dbafd2bc0b1f1c9092bf0c5ea390/docs/PLAN_DRIVE_IMPLEMENTATION.md) lists what was actually exercised.
+**Current `main`.** The game's [sunlight function](https://github.com/Duylamneuuu/Spacenasa-MsChung/blob/main/src/sim/expedition.ts) uses the [24.6-hour Martian sol](https://science.nasa.gov/mars/facts/) as the period of a simplified daylight curve. The light threshold, terrain factors, EU charge rate, RC, and wheel balance are fictional. The map has one area with reduced illumination; it does not simulate dust events or atmospheric physics. The scanner narrows a hazard estimate with an error margin (±9.5% Navigation Camera, ±6% Stereo); it never reveals every hazard. [PLAN_DRIVE_IMPLEMENTATION](../PLAN_DRIVE_IMPLEMENTATION.md) and [DEMO_QA](../design/DEMO_QA.md) list what was actually exercised.
 
-### Historical baseline: `main` at `7606934`
-This table records the legacy findings at that commit. They are not findings against the playable build:
+### Historical baseline: `main` at `7606934` (before the game was built)
+This table records the legacy findings at that commit. The legacy files it names (`MarsOpenWorld.tsx`, `OperationsView.tsx`, `roverModules.ts`) are no longer imported by the app. They are not findings against the current build:
 
 | Area | Status on `origin/main` (`7606934`) | Observed Code Evidence |
 |---|---|---|

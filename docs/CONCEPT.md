@@ -1,44 +1,41 @@
-# APOGEE — Gameplay Concept v2 (Plan & Drive)
+# APOGEE — Gameplay Concept (Plan & Drive)
 
-> **LATEST PRODUCT DECISION — 14 November 2026:** **PLAN & DRIVE**, not Plan & Execute. Player clicks waypoints in Planning Mode and receives an energy/time/risk estimate, then presses **START DRIVE** and manually drives with **W/S (forward/reverse) + A/D (steering)**. The route is guidance, **not autopilot**. All player-facing text is **English only** (including telemetry, mission copy, errors and accessibility labels).
-
+> **Status — 14 Nov 2026:** Plan & Drive is implemented and live at **https://apogee-mars-rover.vercel.app/** (built from `main`). English is the default and judged language; an **EN / VI** switch adds Vietnamese. Mission 01 includes a step-by-step tutorial. Code lives in `src/sim/expedition.ts`, `src/types/expedition.ts`, `src/scene/ExpeditionScene.tsx`, `src/ui/` and `src/i18n.ts`.
 
 ## Why this design
-Players design a Mars rover under budget and mass limits, then choose routes between real educational science objectives. Their plan sets expectations; their **hands-on driving** produces consequences. This combines mission engineering trade-offs with enjoyable game feel.
+Players design a Mars rover under budget and mass limits, then choose routes to science targets. Their plan sets expectations; their **hands-on driving** produces the consequences. The same target can be reached with different wheels and routes, at different energy, time and risk.
 
 ## Two control modes
-- **PLANNING MODE**: orthographic/isometric tactical map. Click waypoints, Undo/Clear, select target sites. Estimated battery/time/risk and known/unknown hazards appear. Choose sandy shortcut or long rocky detour.
-- **DRIVING MODE**: press **START DRIVE**, follow the 3D highlighted route with manual W/S forward/reverse and A/D steering. Third-person rover camera, optional minimap, live actual telemetry. Rover never auto-navigates. Pause/Replan can rebuild the route from the current rover position.
-
-The estimate assumes a route; manual deviations or varying speed change actual time, exposure, energy and risk. Planned costs must not be charged upfront.
+- **Planning:** full-screen 3D view looking down over the sector. Click the ground to add waypoints or pick a suggested route (Mission 01: *Plot both samples*; Mission 02: *North detour* / *Dune shortcut*). The Route Plan panel shows a **Battery / Time / Risk** estimate as a range, plus warnings for unscanned cells, grip limits and the 15 EU reserve.
+- **Driving:** press **Start drive** (or Enter). The camera moves behind the rover. **W/S** forward/reverse, **A/D** steer, **Space** brake. A compass shows bearing and distance to the next waypoint or sample; the minimap and tactical map (**M**) show the route. The rover never drives itself; costs come from the ground actually crossed. **Esc** pauses; **Replan** edits the route from the current position.
 
 ## Systems
-- **Mars environments on one map**: hard rock, soft sand, sharp rocks (P0); slope/crater and shadow (P1).
-- **Three wheels**: light (hard efficient), wide traction (sand efficient), reinforced (rock durable). Each has cost and mass trade-offs; no universal best wheel.
-- **Battery/solar**: driving and science use energy. Charging takes time and requires stopping in sunlight. No energy pickups.
-- **Terrain Scanner**: partial and uncertain nav hazard information, not perfect GPR.
-- **Science Score & fictional Research Credits**: only newly transmitted discoveries award RC, once per site. RC unlocks modules already carried.
-- **Lander Garage**: swap only preloaded modules; payload mass includes spares, rover, lander and support.
-- **Outcomes**: Full, Partial, Failure. Show planned-vs-actual telemetry and explain what choices mattered.
+- **One Mars sector, three terrains:** firm ground, soft sand, sharp rock, inside a mountain rim. One area has reduced sunlight.
+- **Three wheels:** Lightweight (firm ground), Wide Traction (sand), Reinforced (sharp rock). Each has cost and mass; no universal best wheel. Too little grip triggers a safety stop.
+- **Battery & solar:** driving and field actions use energy. **R** recharges for 10 simulated minutes while parked in enough sunlight.
+- **Terrain Scanner (Q):** narrows the hazard estimate for nearby cells; never certainty.
+- **Science:** park next to a sample, **F** analyze, **T** transmit. Science Score and fictional Research Credits (RC) are awarded once per transmitted sample.
+- **Lander Garage:** install carried spares only (4 RC, 4 min each). Deployed mass includes rover, lander, support equipment and spares.
+- **Outcomes:** Mission complete / Partial success / Mission failed, with distance, energy used and recharged, time left, safety stops and the costliest terrain.
+- **Tutorial:** each step asks for one action, highlights the control and advances only after the player does it. **Skip**, or toggle with **?** / **H**.
+- **Language:** English default; **EN / VI** switch, remembered per browser; `?lang=vi` link.
 
-## Missions / priority
-| Mission | Role | Priority |
+## Missions
+| Mission | Role | Status |
 |---|---|---|
-| 01 First Survey | Tutorial for Plan → Drive, sample, scan, solar and transmit | P0 |
-| 02 The Dune Crossing | Sand shortcut vs hard detour, at least two winning approaches | P0 showcase |
-| 03 Into the Crater | Slope/rock/shadow resources | P1 |
+| 01 First Survey | Tutorial, two samples near the lander. 50 science / 20 RC when complete. | Live |
+| 02 The Dune Crossing | Sedimentary Cliff beyond a dune belt. Light wheels + north detour, or wide wheels + dune shortcut, both complete (60 science / 24 RC). | Live |
+| 03 Into the Crater | Slopes, sharp rock and shadow. | Not built |
 
-## Initial educational balance, not NASA measurements
-| Wheels | Hard | Sand | Sharp rocks | Slope |
-|---|---:|---:|---:|---:|
-| Light | 0.80× | 1.80× | 1.60× | 1.40× |
-| Wide traction | 1.25× | 0.85× | 1.25× | 1.10× |
-| Reinforced | 1.15× | 1.30× | 0.75× | 1.00× |
+## Balance (game values, not NASA measurements)
+| Wheels | Firm | Sand | Sharp rock |
+|---|---:|---:|---:|
+| Lightweight | 0.80× | 1.80× | 1.60× |
+| Wide Traction | 1.25× | 0.85× | 1.25× |
+| Reinforced | 1.15× | 1.30× | 0.75× |
 
-Route estimate = sum of segment distance × terrain/wheel/load factors; actual energy = integrated distance traveled through sampled terrain with the same central cost model. Avoid slope double count, frame-rate-based drains or dual physics ownership.
+Driving costs 4.8 EU per 4.4 m cell before terrain, wheel, load and roughness factors. Scan 6 EU (Stereo 8), Analyze 12 EU (Spectrometer 16), Transmit 6 EU. The day–night curve uses NASA's 24.6-hour sol; everything else is educational balance. Manual WASD driving is a teaching simplification: real rovers are commanded from Earth with a radio delay.
 
-**All gameplay text is in English.** Developer docs may be bilingual. Explain that direct WASD control is a pedagogical interface, not instantaneous Earth-to-Mars joystick control.
+**Out of scope:** rockets, orbits and Δv; other planets; autopilot or click-to-move; ISRU crafting; supply pods; open-world sprawl; rigid-body vehicle physics.
 
-**Cut:** rockets/orbits/delta-v, multi-planet content, scripted quiz-choice core, autopilot Plan & Execute, ISRU crafting, supply pods, open-world sprawl and heavyweight vehicle physics.
-
-[Approved GDD](APOGEE_GDD.md) · [Interfaces](INTERFACES.md) · [Work prompt](WORK_MASTER_PROMPT.md).
+[GDD](APOGEE_GDD.md) · [Interfaces](INTERFACES.md) · [Implementation notes](PLAN_DRIVE_IMPLEMENTATION.md)
