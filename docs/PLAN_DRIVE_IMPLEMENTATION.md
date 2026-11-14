@@ -7,4 +7,12 @@
 - Mission 02: Wide Traction có thể đi thẳng theo hướng ban đầu. Lightweight có thể đi vòng về bắc qua các waypoint đã gợi ý. Mission 01 yêu cầu truyền hai mẫu; Standard Storage cần truyền mẫu thứ nhất trước khi phân tích mẫu thứ hai.
 - `npm ci`, `npm test`, `npm run build`. Dùng `npm run preview` để xem chính thư mục build. Có thể triển khai `dist/` như site tĩnh.
 - Model cuối: xem [MODEL_IMPORT_SPEC.md](MODEL_IMPORT_SPEC.md). Mission 03 là stretch và chưa đưa vào menu.
+## Kiểm thử đã chạy
 
+- Node 20 trên GitHub Actions: `npm ci`, 11 engine tests và `npm run build` đều pass.
+- Chromium: Start Drive không tự di chuyển; W không có hiệu lực khi Planning/Paused; Replan giữ nguyên vị trí; giữ và nhả phím làm tốc độ và chi phí thay đổi theo đường đi.
+- First Survey: phân tích và truyền cả hai mẫu, sạc 10 phút khi đỗ, báo cáo thành công.
+- Dune Crossing: bánh tăng bám xuyên cát và bánh nhẹ vòng về bắc đều truyền được mẫu và hoàn thành. Lái thẳng vào cát bằng bánh nhẹ kích hoạt dừng an toàn; kết thúc khi chưa có mẫu cho báo cáo thất bại.
+- Bố cục trang chọn nhiệm vụ không tràn ngang ở 320, 375, 768, 1024 và 1440 px. Điều khiển chạy xe cần bàn phím.
+
+Ảnh Chromium: [Chọn nhiệm vụ](evidence/select-preview.png) · [Hangar](evidence/hangar-preview.png) · [Lập tuyến 3D](evidence/planning-preview.png) · [Lái WASD](evidence/driving-preview.png) · [Mission 02](evidence/report-preview.png) · [Mission 01](evidence/first-survey-preview.png) · [Tuyến vòng](evidence/detour-preview.png) · [Thất bại](evidence/failure-preview.png).
