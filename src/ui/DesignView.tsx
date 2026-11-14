@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { MissionState, PlayerAction, RoverModuleCategory, RoverModule } from '../types/game';
 import { MODULES_BY_CATEGORY, ROVER_MODULES } from '../data/roverModules';
+import { ModuleBreakoutViewer } from '../scene/ModuleBreakoutViewer';
 
 interface DesignViewProps {
   state: MissionState;
@@ -96,6 +97,9 @@ export function DesignView({ state, send }: DesignViewProps) {
                 {isEquipped && <span className="equipped-badge">EQUIPPED ON ROVER</span>}
                 {isStowedInDepot && <span className="depot-badge">IN LANDER DEPOT</span>}
               </div>
+
+              {/* 3D Isometric Breakout Model Preview */}
+              <ModuleBreakoutViewer moduleId={mod.id} name={mod.name} />
 
               <p className="mod-desc">{mod.description}</p>
 

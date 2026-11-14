@@ -38,6 +38,19 @@ export function getTerrainSlope(x: number, z: number): { pitch: number; roll: nu
   return { pitch, roll };
 }
 
+/**
+ * Computes exact normalized terrain surface normal vector (Nx, Ny, Nz) at (x, z).
+ */
+export function getTerrainNormal(x: number, z: number): [number, number, number] {
+  const delta = 0.5;
+  const dhdx = (getTerrainHeight(x + delta, z) - getTerrainHeight(x - delta, z)) / (delta * 2);
+  const dhdz = (getTerrainHeight(x, z + delta) - getTerrainHeight(x, z - delta)) / (delta * 2);
+
+  // Surface normal vector = (-dh/dx, 1, -dh/dz) normalized
+  const len = Math.sqrt(dhdx * dhdx + 1 + dhdz * dhdz);
+  return [-dhdx / len, 1 / len, -dhdz / len];
+}
+
 // =========================================================================
 // 3D WORLD LANDMARK COORDINATES
 // =========================================================================
@@ -62,6 +75,7 @@ export interface DebrisSite3D extends WorldObject3D {
 
 export interface SandTrap3D extends WorldObject3D {
   revealed: boolean;
+  revealedUntil?: number; // timestamp (ms) until when the radar detection remains active
 }
 
 // Center Lander Base Depot
