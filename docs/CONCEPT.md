@@ -1,51 +1,58 @@
-# Concept v0 — Mission Control
+# APOGEE — approved concept (14 November 2026)
 
-## Creative direction
+> The old cutaway Mission Control / scripted choices / lunar orbiter concept is **superseded**. Read [the complete GDD](APOGEE_GDD.md).
 
-**Core fantasy:** You are a mission director in a compact space control room. You cannot afford every instrument or every safety margin. Build a mission, see it launch, respond to failure, and learn the cost of your decisions.
+## Elevator pitch
 
-**View:** a fixed 3D **isometric / orthographic** camera over a tiny low-poly mission-control diorama. Think stylized cutaway room, **not** full freely roaming 3D or a huge RimWorld colony.
+**Design a Mars rover. Plan a science expedition. Watch your engineering decisions come alive.** The rover travels in a Three.js isometric Mars map where hard plains, sand, sharp rocks, slopes and shadowed canyons change the safest and most energy-efficient route.
 
-**Visual identity:** restrained NASA-inspired sci-fi control room; dark navy, warm off-white panels, amber warning lights, cyan active highlights; large readable UI. No NASA endorsement claim. Do not copy copyrighted character art/screenshots from reference games.
+This is a **mission-design / trade-off simulator**, not a collectibles-selling game or a visual-novel choice menu.
 
-**Interaction:** click on stations / obvious buttons, not free movement. Scene objects can animate on state changes; all critical decisions appear in HTML panels.
+## Distinctive mechanics
 
-## UI proposal
+1. **Mission Select** — missions reuse one Mars map and emphasize different terrain trade-offs.
+2. **Earth Hangar** — three wheel variants and a compact sensor/science loadout; budget + deployed-payload mass caps. Preloaded spares remain part of total mass.
+3. **Route planning** — click one or more waypoints, optionally add science tasks, inspect estimated energy, time and risk, then **Execute**; rover animates continuously. No WASD primary loop, no tile-by-tile move button.
+4. **Terrain Scanner** — investigate unknown terrain with imperfect information; a gameplay abstraction inspired by navigation cameras, not ground-penetrating radar claiming perfect detection.
+5. **Battery + solar charging** — movement, scanning, sampling and transmission cost energy; stopping in light costs time but recharges. Darkness/shadow affects solar yield.
+6. **Science Score + fictional RC** — analysis collects science data; **successful transmit** grants Research Credits; first discovery rewards only once.
+7. **Lander Garage** — return to swap only spares carried in the deployed cargo; no orbital supply drops or on-site manufacturing.
+8. **Debrief** — show science, energy, time, risk, chosen loadout and reasons, encouraging alternate routes and wheel builds.
 
-- **Top:** mission name / phase progress (Plan → Design → Launch → Operations → Debrief)
-- **Left:** mission objectives and build panel / event cards
-- **Center:** Three.js diorama with interactable consoles and a spacecraft miniature
-- **Right:** always-visible budget, mass, generated/required power, communication reliability, mission risk; exact metrics to be approved by science lead
-- **Bottom:** event log and primary action button
-- **Accessibility:** readable English labels, non-color-only state indications, lower-motion fallback, desktop-first.
+## Terrain and wheel trade-off (game-balance draft, NOT NASA data)
 
-## MVP playable loop
+| Wheel | Hard | Soft sand | Sharp rocks | Slope | Why use it? |
+|---|---:|---:|---:|---:|---|
+| W1 light | 0.80× | 1.80× | 1.60× | 1.40× | Quick, light; detours on easy terrain |
+| W2 wide traction | 1.25× | 0.85× | 1.25× | 1.10× | Crosses sandy shortcuts |
+| W3 reinforced | 1.15× | 1.30× | 0.75× | 1.00× | Survives rough, rocky routes |
 
-1. **Mission briefing**: one objective (e.g. lunar reconnaissance). Present limits and success criteria.
-2. **Design**: pick 1 launcher and choose a payload / solar/power / comm package. Each choice has tangible pros/cons.
-3. **Preflight**: show pass/fail checks (cost, mass, power, communications and any scientifically justified simplified flight feasibility). Explain assumptions.
-4. **Launch**: short cinematic transition in 3D; no need for realistic flight controls or physics engine.
-5. **Operations**: 2–3 scripted but state-aware challenges. Choice affects mission resources and outcome.
-6. **Debrief**: success / partial success / failure with *why*, NASA source references and play-again.
+**Formula draft:** MOVE_ENERGY = BASE_DISTANCE_COST × TERRAIN_FACTOR × WHEEL_FACTOR × LOAD_FACTOR; do not double-count slope. Distances and equipment mass are simulated separately from the creative tuning multipliers. None of the wheels has zero risk.
 
-## Hard scope limits
+## One Mars map, multiple missions
 
-- Only **one** fully playable mission for first submission.
-- No multiplayer, open-world movement, character AI, procedural colony simulation, or full solar-system engine.
-- No complicated backend, realtime NASA API dependency, login or leaderboard.
-- 3D visuals are presentation; the simulation engine is a separate pure TypeScript module.
-- Do not hardcode scientific facts as true until reviewed by aerospace lead.
+| Mission | Goal | MVP? |
+|---|---|---|
+| 01 First Survey | Transmit analyses from two nearby science sites | **Required** |
+| 02 The Dune Crossing | Collect data across sandy terrain; detour vs shortcut | **Required; main showcase** |
+| 03 Into the Crater | Slopes, sharp rocks, limited sunlight | **Stretch only** |
 
-## NASA data evidence
+**P0 environments:** hard, soft sand, sharp rocks. **P1:** slope/crater and shadowed canyon. Use one grid/graph + one isometric scene; do not create separate worlds.
 
-A small bundled dataset is fine as long as it is actually used and attributed. Science owner records source URL, date read, units, extraction method, and every simplifying assumption.
+## Core power loop
 
-Candidate starting references (must be validated before use):
-- NASA/JPL Solar System Exploration and planetary/moon facts: https://science.nasa.gov/solar-system/
-- NASA NSSDC Moon Fact Sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html
-- JPL Horizons (if needed): https://ssd.jpl.nasa.gov/horizons/
-- NASA 3D Resources (models; confirm license/attribution for each asset): https://nasa3d.arc.nasa.gov/
+- Battery 0–100 **EU**; solar-only charging for MVP.
+- MOVE, SCAN, ANALYZE, TRANSMIT consume EU; RECHARGE requires stopping in light with time advancing.
+- Example **mock** tuning: MOVE baseline 5 EU per standard segment, SCAN 6, ANALYZE 12, TRANSMIT 6, recharge +8 EU / 10 minutes in good light; warn below 15 EU reserve. Values require game balance testing, not NASA citations.
+- Risk/preview for unknown terrain must show uncertainty; safe-stop and replan on unplanned hazards.
 
-## What makes this different
+## Restrictions / scientific framing
 
-The story and visual world make complex engineering decisions approachable; explainable scoring ties every player action to mission feasibility. *A pretty 3D room without meaningful trade-offs is not a complete answer to the challenge.*
+- **P0:** 3 wheels, 3 terrain types, 2 missions, route preview & Execute, battery/solar, basic scanner, science/credits, lander swap, report.
+- **P1:** extra terrains, improved scanner, mission 03, polish / extra assets.
+- **Cut:** rocket/launch selection, trajectories, Δv, physical landing model, WASD, endless farming, complex crafting/ISRU, orbital supply capsules, multiple planetary bodies, full suspension physics, large procedural maps and elaborate comms.
+- **No fabricated NASA data.** Real sources with URLs/units/provenance belong in Sơn's source notes; balance data marked MOCK.
+
+**User demo target:** a 3–5 minute playthrough showing **two plausible engineering solutions**, not one prescribed perfect strategy.
+
+[Full GDD](APOGEE_GDD.md) · [Handoff](IMPLEMENTATION_HANDOFF.md) · [Data](CONTENT_DATA.md)

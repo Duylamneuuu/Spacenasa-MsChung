@@ -1,20 +1,44 @@
-# MS Chung — Space Mission Design Game
+# APOGEE — Mars Rover Architect
 
-NASA Space Apps Challenge 2026 · **Challenge 13: Space Mission Design Game**.
+**NASA Space Apps Challenge 2026 · Team MS Chung**  
+**Game:** browser-based 2.5D / isometric, Three.js + React + TypeScript.
 
-**Working concept (proposal, not locked):** A short, decision-driven 2.5D isometric space mission simulator. Visual influence: The Sims (cutaway room view), RimWorld (resource management), 60 Seconds! (meaningful crisis choices). All artwork and designs must be original or appropriately licensed, not copied.
+> **LOCKED CONCEPT (14 Nov 2026):** Design and operate a Mars science rover. **One Mars map, different environments, multiple science missions.** Configure your rover, plan a route, preview its energy/time/risk, press Execute to watch it drive, collect and transmit science data, and learn the engineering trade-offs.
 
-> IMPORTANT: Our game must let users **design, manage, and simulate an entire space mission**, showing engineering trade-offs and consequences. It is **not** an endless space colony builder.
+## Where to start
 
-## Start here — team collaboration
+1. **[Full approved GDD](docs/APOGEE_GDD.md)** — source-of-truth snapshot from [the editable Google Doc](https://docs.google.com/document/d/1V2svKyaGYkj_hA6f7MTabp8gnvi-QhEMNVChFwML8yE/edit)
+2. **[Concept / MVP boundaries](docs/CONCEPT.md)**
+3. **[Implementation handoff + dependencies](docs/IMPLEMENTATION_HANDOFF.md)**
+4. **[Shared interface proposal](docs/INTERFACES.md)** — coordinate changes with Duy before coding
+5. **[Team plan](docs/TEAM_PLAN.md)** · **[Content + science data handoff](docs/CONTENT_DATA.md)** · **[Collaboration](docs/COLLABORATION.md)**
 
-- [Collaboration guide: clone, branches, PRs, merge cadence](docs/COLLABORATION.md)
-- [UI–3D–simulation shared interfaces](docs/INTERFACES.md)
-- [Tasks: Duy, Bảo, Hải, Sơn, Cường](https://github.com/Duylamneuuu/Spacenasa-MsChung/issues)
-- [Pull requests — see current code changes](https://github.com/Duylamneuuu/Spacenasa-MsChung/pulls)
-- [Build check](https://github.com/Duylamneuuu/Spacenasa-MsChung/actions)
+[Issues](https://github.com/Duylamneuuu/Spacenasa-MsChung/issues) · [Pull Requests](https://github.com/Duylamneuuu/Spacenasa-MsChung/pulls) · [Actions](https://github.com/Duylamneuuu/Spacenasa-MsChung/actions)
 
-Run the scaffold with **Node.js 20+**:
+## Core play loop
+
+**Select Mission → Configure Rover & cargo on Earth → Preflight budget/mass → Deploy → Click waypoints + science tasks → Preview energy/time/risk → Execute route in 3D → Scan / Analyze / Transmit → Research Credits → Return to lander for preloaded spare modules → Debrief / Next Mission.**
+
+### What makes this a mission-design game?
+
+- Preflight balances **total deployed mass, budget and mission equipment**. Lander + installed rover modules + spare modules all count toward payload mass.
+- **Three wheel types** have different costs on hard ground, soft sand, sharp rocks and slopes. A short route can be worse than a longer detour.
+- Battery discharges through operations; **solar charging requires daylight and time spent stopped**. No energy pickups.
+- Scanner reveals terrain and estimated hazards; it is **not a perfect underground radar**.
+- **Science Score** measures scientific progress; **Research Credits (RC)** are explicitly *fictional gameplay progression* granted when science data is successfully transmitted, not NASA funding.
+- Lander garage can swap **only spares launched with the mission**. No instant orbital deliveries.
+
+### Missions, one shared Mars map
+
+| Priority | Mission | Core problem |
+|---|---|---|
+| **P0** | **01 — First Survey** | Learn waypoint planning, scanner, battery, sample analysis and transmission |
+| **P0** | **02 — The Dune Crossing** | Choose between short sandy route and longer safer detour with different wheels |
+| **P1/stretch** | **03 — Into the Crater** | Slopes, sharp rocks, shadow and return-energy planning |
+
+**No** playable rocket/launcher selection, orbit/delta-v calculator, multiple planets, WASD primary controls, complex ISRU crafting, supply pods or open-world driving in MVP.
+
+## Development / current status
 
 ```bash
 npm install
@@ -22,54 +46,24 @@ npm run dev
 npm run build
 ```
 
-The current 3D scene, simulation and resource values are **mock placeholders**, not a finished game or NASA-verified physics. Duy owns integration; contributors use PRs, never push directly to `main`.
+**Node.js 20+**. Stack: Vite, React, TypeScript, Three.js / React Three Fiber. No backend or login required for MVP.
 
-## Mission loop (MVP)
+**IMPORTANT:** The checked-in app/scene/simulation are currently **pre-APOGEE integration scaffolds**, with old Mission Control placeholder visuals and mocked values. **This documentation update does not implement the rover game.** Build the GDD in the four workstreams and integrate incrementally. Do not mistake the scaffold for flight-validated NASA engineering.
 
-1. **Plan:** Select one mission objective, inspect constraints and available budget.
-2. **Build:** Choose a spacecraft/launcher configuration and scientific payload; see budget, mass, power and communication trade-offs.
-3. **Launch:** Run a simplified, explainable mission feasibility check; mission may fail if constraints are violated.
-4. **Operate:** Play 2–3 decision events (power shortfall, communications issue, instrument risk) with persistent resource effects.
-5. **Debrief:** Display mission outcome, science return, and *why* the engineering choices mattered.
+## Ownership — five people, four branches
 
-**MVP target:** one mission scenario (suggested lunar reconnaissance orbiter), ~3 meaningful module choices, 2–3 events, one failure case and one success case; a browser-playable demo.
-
-## Technical direction
-
-- React + TypeScript + Vite
-- Three.js via **@react-three/fiber** and **@react-three/drei**; fixed orthographic camera for low-poly 2.5D/isometric scene
-- HTML/CSS UI overlay for readable panels, decisions, mission dashboard
-- Pure TypeScript simulation engine; a simple local, deterministic data model
-- No backend/database required for the MVP; add one only if the chosen functionality demonstrably needs it
-- Mission reference data: source and verify real NASA/JPL documentation, stored with URLs, units, and simplification notes. **Do not invent NASA data or present an educational approximation as a validated aerospace simulator.**
-
-## Team workflow
-
-### Team MS Chung
-
-| Member | Responsibility | Working branch |
+| Owner | Workstream / branch | Paths |
 |---|---|---|
-| **Duy** | Product Lead, UI/UX, frontend integration | `feat/ui` |
-| **Bảo** | Three.js 2.5D scene, visual interactions, 3D assets/animation | `feat/scene` |
-| **Hải** | Game rules, resource calculation, simulation engine, tests (consumes data) | `feat/simulation` |
-| **Sơn (HUST)** | Scientific idea, verified NASA datasets, source citations, scientific validation | `feat/content-data` |
-| **Cường (PTIT)** | Game concept, mission narrative, choice events, design assets, pitch | `feat/content-data` |
+| **Duy** | UI, integrator · feat/ui | src/App.tsx, src/ui/, src/styles.css; shared contracts and integration |
+| **Bảo** | 3D / scene · feat/scene | src/scene/, public/assets/3d/ |
+| **Hải** | Pure simulation · feat/simulation | src/sim/, tests; consumes data, does not own it |
+| **Sơn** | NASA science/data · feat/content-data | src/data/, docs/science/ |
+| **Cường** | Game design/content · feat/content-data | src/content/, docs/design/, public/assets/ui/ |
 
-- **One repository, one application.**
-- Integrator owns `src/App.tsx`, app entrypoints, styles and dependency changes.
-- Scene/gameplay contributor owns `src/scene/`, animation, 3D assets.
-- Simulation contributor **Hải** owns `src/sim/` and tests; he reads but does not own datasets or narrative content.
-- **Content + Data** workstream is shared by **Sơn + Cường**: Sơn owns `src/data/`, `docs/science/`; Cường owns `src/content/`, `docs/design/`, and `public/assets/ui/`. Work on one shared branch without overwriting each other's folders.
-- Sơn verifies NASA sources, units, limits and scientific assumptions; Cường defines the narrative flow, events, game choices and visual design. Duy approves final MVP scope.
-- Agree the shared interfaces in `docs/INTERFACES.md` **before** coding independently.
-- **Exactly four workstream branches:** `feat/ui`, `feat/scene`, `feat/simulation`, `feat/content-data`; PR into `main` or the coordinator's agreed integration branch. Do not rewrite another person's folder or overwrite `package.json` independently.
-- Integrate a minimal end-to-end slice early, not three standalone apps.
+All changes via PR; **Duy coordinates changes to src/types/game.ts**, package.json and app entrypoints. Sơn and Cường share a branch but **do not edit the same files**.
 
-See `docs/CONCEPT.md`, `docs/INTERFACES.md`, `docs/TEAM_PLAN.md`, and `docs/CONTENT_DATA.md`.
+## Scientific integrity
 
-## Official context
+Power EU, wheel coefficients, costs in credits and win thresholds are **educational balance values, not measured NASA figures**. Real NASA/JPL numbers must include primary source URLs, units, provenance, assumptions and an explanation of how they influence gameplay. Do not imply NASA endorsement.
 
-- https://www.spaceappschallenge.org/2026/challenges/
-- https://www.spaceappschallenge.org/resources/project-submission-guide/
-
-This repo is a working concept and collaboration scaffold; implementation and scientific assumptions must be documented and verified during the hackathon.
+Official challenge and sources: https://www.spaceappschallenge.org/2026/ — see GDD section 14 for research references.

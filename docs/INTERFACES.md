@@ -1,100 +1,60 @@
-# Integration contracts v0 (review together before building)
+# APOGEE — proposed interfaces v1 (not yet implemented)
 
-## Separation of concerns
+> **Critical:** The code under src/types/game.ts, src/sim/engine.ts and src/scene/MissionScene.tsx still describes the **legacy scaffold**, not the types below. Duy must coordinate a typed migration before Bảo/Hải write dependent imports. Do not blindly treat this document as executable code.
 
-```
-Content + NASA dataset (Sơn + Cường) → Pure simulation (Hải) → Updated state
-                                             ↑              ↓
-                                      App/UI (Duy) ← Three.js scene (Bảo)
-```
+## Ownership of the contract
 
-The UI should **not** calculate mission physics. The 3D scene should **not** own budget or success rules. **Sơn owns numeric/scientific data; Cường owns narrative/events; Hải consumes both and implements consequences.** Duy coordinates the interfaces.
+- **Sơn**: input datasets and provenance (src/data/). No runtime rules.
+- **Cường**: mission objectives, learning text and sites (src/content/). No physics.
+- **Hải**: pure TypeScript preview and execution (src/sim/). No React/Three.js.
+- **Bảo**: 3D Mars map and rover animation (src/scene/). No energy/resource mutations.
+- **Duy**: shared src/types/game.ts and UI/controller integration.
 
-## Shared types proposal (src/types/game.ts)
+## Canonical conceptual entities (target)
 
-```ts
-export type Phase = 'briefing' | 'design' | 'preflight' | 'launch' | 'operations' | 'debrief';
+| Entity | Required fields | Owner |
+|---|---|---|
+| MissionConfig | missionId, target site IDs, budget limit, mass cap, time limit, selected terrain/graph, reward policy | Sơn numeric input + Cường objectives |
+| TerrainTile | id, position, terrain kind, elevation/slope, sunlight factor, discovered flag | Sơn input |
+| WheelConfig | id (light / wide / reinforced), massKg, costCredits, terrain multipliers, risk factors | Sơn game balance, reviewed by Hải |
+| RoverLoadout | installed IDs, spare IDs, base mass, battery capacity, scanner ID | Duy/ Hải with data from Sơn |
+| MissionState | phase, mission ID, rover position, batteryEU, elapsedMinutes, discovered terrain, stored science results, delivered science, scienceScore, researchCredits, selected loadout, outcome | Duy shared types |
+| Waypoint | x, z or tile ID, stable position, optional site reference | Bảo emits, Hải consumes |
+| PlannedAction | MOVE(waypoint), SCAN, ANALYZE(siteId), TRANSMIT | Duy defines; Hải processes |
+| PlanPreview | estimatedEnergyEU, estimatedMinutes, riskBand, uncertainty, warnings, feasible | Hải |
+| ExecuteResult | next MissionState, ordered movement/scan/transmit events, stopReason, errors | Hải, consumed by Bảo + Duy |
 
-export type MissionResources = {
-  budgetRemaining: number;  // units and scale must be documented
-  massKg: number;
-  massLimitKg: number;
-  powerAvailableW: number;
-  powerRequiredW: number;
-  sciencePotential: number; // educational game scoring, not official NASA measurement
-  risk: number;             // normalized 0..100 educational score
-};
+**No WASD, no instant-click movement** in primary gameplay. A plan contains clicked waypoints and optional science actions; the Execute button triggers a deterministic simulation and Bảo animates the resulting ordered events. Logic may work on a grid/graph while the scene interpolates continuous 3D movement.
 
-export type ModuleChoice = {
-  id: string;
-  category: 'launcher' | 'payload' | 'power' | 'comms';
-  name: string;
-  cost: number;
-  massKg: number;
-  powerW: number;
-  scienceGain?: number;
-  description: string;
-};
+## Target API (to implement in the first integration PR)
 
-export type MissionState = {
-  phase: Phase;
-  objectiveId: string;
-  selectedModuleIds: string[];
-  resources: MissionResources;
-  eventIndex: number;
-  lastMessage?: string;
-  outcome?: 'success' | 'partial' | 'failure';
-};
+    getInitialState(missionId): MissionState
+    previewPlan(state, plannedActions, missionData): PlanPreview
+    executePlan(state, plannedActions, missionData): ExecuteResult
+    evaluateMission(state, missionData): MissionEvaluation
 
-export type PlayerAction =
-  | { type: 'SELECT_MODULE'; moduleId: string }
-  | { type: 'REMOVE_MODULE'; moduleId: string }
-  | { type: 'ADVANCE_PHASE' }
-  | { type: 'CHOOSE_EVENT'; eventId: string; optionId: string }
-  | { type: 'RESET' };
-```
+    MissionScene({ state, plannedRoute, executionEvents, onWaypointClick, onSiteClick })
 
-These types are **proposal** only. The integrator should freeze the file after a 10-minute team review. Agree module counts and whether budgetRemaining is derived from selected modules instead of stored.
+The above are **interface shapes**, not presently exported functions. Duy owns names, final TypeScript signatures and any compatibility adapter to the old scaffold. Keep UI and 3D working with mock data until the new contract lands.
 
-## Content and NASA data interface (fourth workstream)
+## Rules not to violate
 
-The content/data branch supplies **data, not runtime calculations**:
+1. **Total deployed payload mass** includes lander, installed rover modules, spare modules and support equipment. Inventory isn't free.
+2. **Power**: single battery scale (EU); solar recovery consumes minutes and depends on light. Source-data physical units and game EU are distinguished.
+3. **Route cost**: BASE_DISTANCE_COST × TERRAIN_FACTOR × WHEEL_FACTOR × LOAD_FACTOR. Avoid slope factor duplication; handle each traversed segment. Unknown paths produce estimates/ranges, not perfect foresight.
+4. **Three wheel IDs**: light, wide and reinforced. Game-balance coefficients are in [CONCEPT.md](CONCEPT.md), not NASA measurements.
+5. **Scanner**: discloses nearby terrain/hazard estimates; cannot reveal 100% of hidden hazards. Not the same as RIMFAX underground geologic radar.
+6. **Science/RC**: ANALYZE stores data; only TRANSMIT converts eligible new transmitted discoveries to fictional RC. Science Score is cumulative and not depleted by upgrades.
+7. **Garage**: change module only at lander and only if spare is in inventory. RC gates upgrades but is not physical supply from Earth.
+8. **Success**: required science returned within time and functioning rover; partial and failure paths must be explainable and reproducible.
+9. **Content IDs**: never key rules by display string or translated text. Use stable mission/site/module identifiers and schemas.
+10. **Tests**: same initial state + same actions + same map = same result. No unseeded hidden randomness.
 
-- `src/data/` — documented mission constraints, spacecraft module values, scientific facts and source references; owned by Sơn.
-- `src/content/` — mission briefing text, event choices, descriptions and debrief messages; owned by Cường.
-- `docs/science/` — primary URLs, units, date of access, simplifications, and data-use explanation.
-- `docs/design/` — gameplay flow, original assets / licenses and player UX.
+## Migration order
 
-Use stable IDs so a narrative event refers to a simulation rule or option by ID, not by string matching. Any scientific value entering the engine must carry units and references. During scaffolding, **mock values are explicitly labeled mock**. See `docs/CONTENT_DATA.md`.
+1. Duy approves shared ID conventions, type definitions and this contract; commits src/types/game.ts.
+2. Hải implements pure engine functions with mocks; Bảo adapts scene props to typed callbacks; Sơn/Cường supply data and copy.
+3. Duy wires into src/App.tsx and checks build, two-route demo and critical failure path.
+4. Replace placeholders with reviewed NASA references and label simulation approximations.
 
-## Module APIs (proposal)
-
-```ts
-// Simulation contributor
-export function getInitialState(): MissionState;
-export function applyAction(state: MissionState, action: PlayerAction): MissionState;
-export function evaluateMission(state: MissionState): {
-  ok: boolean;
-  blockers: string[];
-  warnings: string[];
-};
-
-// Scene contributor
-export type MissionSceneProps = {
-  state: MissionState;
-  onStationClick?: (station: 'briefing' | 'design' | 'launch' | 'operations') => void;
-};
-export function MissionScene(props: MissionSceneProps): JSX.Element;
-
-// UI coordinator
-// App owns phase routing and dispatch; scene receives only state and callbacks.
-```
-
-## Done criteria
-
-- All code TypeScript, exports are named, no hidden global mutable state.
-- The simulation has at least one success/failure path tested deterministically.
-- Scene loads even with zero imported 3D assets (placeholder primitives).
-- App can run with mocked simulation data before source datasets arrive.
-- No contributor edits other owner directories without direct agreement.
-- Shared imports should use paths that exist; no circular dependencies.
+For the exact approved game loop and scope see [APOGEE GDD](APOGEE_GDD.md).

@@ -1,58 +1,51 @@
-# Team execution plan — November 14–15, 2026
+# MS Chung — APOGEE execution plan (Nov 14–15, 2026)
 
-## Exactly 4 workstreams — 5 people
+**5 people, exactly 4 concurrent workstreams.** This supersedes the old 60-Seconds-style Mission Control plan.
 
-| Workstream | Owner(s) | Branch | Folder ownership / deliverable |
+| Workstream | Owner | Branch | Folder / output |
 |---|---|---|---|
-| **1. Frontend + UI/UX** | **Duy** | `feat/ui` | `src/App.tsx`, `src/ui/`, `src/styles.css`, `src/types/`: app integration, panels, screen flow and shared types coordination |
-| **2. Three.js + 2.5D scene** | **Bảo** | `feat/scene` | `src/scene/`, `public/assets/3d/`: low-poly isometric scene, interactions, animations and state feedback |
-| **3. Simulation / game logic** | **Hải** | `feat/simulation` | `src/sim/`, tests: resource calculations, mission constraints, event effects, feasibility, results |
-| **4. Idea + Content + NASA Data** | **Sơn (HUST) + Cường (PTIT)** | `feat/content-data` | **Sơn:** `src/data/`, `docs/science/`, verified NASA facts and assumptions. **Cường:** `src/content/`, `docs/design/`, `public/assets/ui/`, story/events/visual design/pitch |
+| **UI / product integration** | Duy | feat/ui | src/App.tsx, src/ui/, src/styles.css, src/types/game.ts coordination; hangar, command HUD, preview, reports |
+| **3D Mars scene** | Bảo | feat/scene | src/scene/, public/assets/3d/; isometric terrain, rover, clickable waypoints, continuous Execute animation, visible wheel variants |
+| **Pure gameplay simulation** | Hải | feat/simulation | src/sim/ and tests; route/time/battery/solar/scanner science/RC, mission results |
+| **Concept + NASA data** | Sơn and Cường | feat/content-data | Sơn: src/data/, docs/science/ sources + scientific checks; Cường: src/content/, docs/design/, public/assets/ui/ missions, sites, tutorial, assets and pitch |
 
-**One shared 4th branch, but two separate folder owners:** Sơn edits data/science; Cường edits content/design. They sync before pushing, never independently overwrite the same file. Duy signs off on the concept/scope.
+**Sơn and Cường share feat/content-data but have separate file ownership.** Pull before push. Duy integrates contracts and merges via PR.
 
-## Four-part integration flow
+## Scope priorities
 
-```
-Sơn + Cường: NASA data, missions, event text
-                  ↓ (typed data imports)
-Hải: deterministic simulation and game rules
-                  ↓ (MissionState)
-Duy: React UI / decisions  ⇄  Bảo: Three.js scene
-                  ↓
-            single playable app
-```
+**P0 / must demo**
+- One Mars map with hard, soft-sand and sharp-rock routes.
+- 3 wheel types (light, wide, reinforced), with different energy/risk outcomes.
+- Mission 01 First Survey (tutorial) and Mission 02 Dune Crossing (short sandy shortcut vs long detour).
+- Mission selection + hangar loadout, budget and full deployed mass preflight.
+- Click waypoints → preview power/time/risk → Execute → animated rover → replan if safe-stop.
+- One battery, solar stop-and-charge, basic scanner, analyze and transmit, Science Score/fictional Research Credits.
+- Return to lander to use preloaded spares and show debrief/retry.
+- Tests, NASA attribution and limitations, browser build + demo.
 
-- Simulation consumes source-backed numbers, but **does not own or silently invent scientific data**.
-- Data/content does not decide runtime state calculations: it provides values, choice text and documented effects that Hải validates and implements.
-- Duy coordinates contract changes in `src/types/game.ts` and `docs/INTERFACES.md`.
-- Keep game design scoped: one complete mission, ~3–5 minutes per playthrough.
-- Cường gives Bảo a prioritized asset list and Duy a short UX flow; Sơn gives Hải documented figures early.
+**P1 / optional after P0 complete:** slopes, shadows, enhanced scanner, Mission 03 crater, graphics polish, better visual timeline.
 
-## Collaboration / milestones
+**Out:** launch/rocket/delta-v, multiple planets, WASD, orbital pods, crafting/ISRU, full tire physics, multiple antenna models, expansive open world.
 
-1. Agree one mission and the minimum content/data schema; use placeholders only while validated figures arrive.
-2. First end-to-end slice: a mission option → simulation resource change → UI update → scene reaction.
-3. Bảo, Hải and Duy each push small, reviewable PRs; Sơn/Cường push content/data together in their branch.
-4. Duy merges after `npm run build` succeeds and a short demo works.
-5. Freeze feature scope early enough to test two possible outcomes, data sources, references and demo.
+## Integration order (do not let four separate implementations diverge)
 
-## Branches & merge rules
+1. **Duy + Bảo + Hải — freeze v1 types** from docs/INTERFACES.md. The current source is an old scaffold. Agree waypoint format, PlanPreview and ExecuteResult.
+2. **Cường → Duy/Bảo:** mission site locations, layout reference, player copy and low-poly essentials.
+3. **Sơn → Hải:** terrain kinds, game-balance assumptions clearly labeled as mock, NASA/JPL source list and units.
+4. **First shared vertical slice:** Mission 02, one rover, two possible routes, one Scan/Analyze/Transmit sequence.
+5. Add all 3 wheel variants; solar recharge; lander swap + RC; mission 01 tutorial; debrief.
+6. Only then extend to more environments/mission 03 if time remains.
 
-- Four branches: `feat/ui`, `feat/scene`, `feat/simulation`, `feat/content-data`.
-- Long-running streams are initial starting points; prefer short-lived per-task branches from up-to-date `main` after first merge.
-- Do not wait until night to merge. Every contributor reviews changes in GitHub Pull Requests.
-- Changes to shared types, dependencies or app entrypoint go through Duy.
-- Science values and NASA citation data require Sơn's check; narrative/event terms require Cường's check.
-- Keep original assets and their licenses/credits documented.
+## Done / review gates
 
-## Minimum acceptance test
+- Same route + wheel setup produces same result; preview matches the executed cost model.
+- Each of two distinct routes to the same site can work with an appropriate loadout.
+- No part of UI or scene secretly changes simulation resources.
+- Payload cap includes installed + spare inventory, not just the visible rover.
+- Real NASA values are source-backed; mock multipliers are plainly disclosed.
+- Full science objective → transmit → score/RC → debrief loop works, plus failure/partial paths.
+- npm run build and manual run-through pass; UI screenshots/GIF and PR link accompany each merge.
 
-1. New player understands the goal within 15 seconds.
-2. Two engineering choices produce measurably different results.
-3. One complete mission can be finished in 3–5 minutes.
-4. Success and failure paths work and are explained.
-5. At least one NASA or partner dataset genuinely influences the game, with URL, units, assumptions and attribution.
-6. Another device can run the deployed browser demo without secrets.
+**No claim that all features are coded yet.** The checked-in app is a compilation scaffold until owner PRs land.
 
-See [Content & Data handoff](CONTENT_DATA.md) and [GitHub collaboration guide](COLLABORATION.md).
+Links: [GDD](APOGEE_GDD.md) · [Handoff](IMPLEMENTATION_HANDOFF.md) · [Interfaces](INTERFACES.md) · [Collaboration](COLLABORATION.md).
