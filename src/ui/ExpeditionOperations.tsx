@@ -23,6 +23,7 @@ const distance = (a: Cell, b: Cell) => Math.hypot(a.x - b.x, a.z - b.z);
 const num = (n: number, d = 1) => n.toFixed(d);
 const range = ([a, b]: PlanPreview['energy']) => num(a, 0) === num(b, 0) ? num(a, 0) : num(a, 0) + '–' + num(b, 0);
 const statusAt = (state: MissionState, id: SiteId) => state.delivered.some(s => s.site === id) ? 'done' : state.pending.some(s => s.site === id) ? 'stored' : 'open';
+const sameRoute = (a: readonly Cell[], b: readonly Cell[]) => a.length === b.length && a.every((c, i) => same(c, b[i]));
 const nameAt = (t: T, cell: Cell, start: Cell) => {
   const id = (Object.keys(SITES) as SiteId[]).find(id => same(SITES[id].cell, cell));
   return id ? siteName(t, id) : same(cell, start) ? t('hud.lander') : t('hud.waypoint');
@@ -82,10 +83,10 @@ class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-function Gauge({ label, value, max, unit, warn }: { label: string; value: number; max: number; unit: string; warn?: boolean }) {
+function Gauge({ label, value, max, unit, warn, whole }: { label: string; value: number; max: number; unit: string; warn?: boolean; whole?: boolean }) {
   const p = Math.max(0, Math.min(1, value / max));
   return <div className={'hud-gauge' + (warn ? ' warn' : '')}>
-    <div className="hud-gauge-head"><span>{label}</span><b>{num(value, value >= 100 ? 0 : 1)}<small>{unit}</small></b></div>
+    <div className="hud-gauge-head"><span>{label}</span><b>{num(whole ? Math.floor(value) : value, whole || value >= 100 ? 0 : 1)}<small>{unit}</small></b></div>
     <div className="hud-gauge-bar"><i style={{ width: p * 100 + '%' }} /></div>
   </div>;
 }
@@ -142,6 +143,7 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
   const mission = MISSIONS[state.mission];
   const [tactical, setTactical] = useState(false);
   const [garage, setGarage] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const [visited, setVisited] = useState(0);
   const [guide, setGuide] = useState(() => { try { return localStorage.getItem('apogee-tour-off-' + state.mission) !== '1'; } catch { return true; } });
   const [acked, setAcked] = useState<Set<string>>(() => new Set());
@@ -176,6 +178,13 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
   const complete = mission.targets.every(id => statusAt(state, id) === 'done');
   const atLander = distance(state.position, mission.start) <= .65;
   const step = tourStep(state, mode, route, acked, nearby);
+  const openCells = mission.targets.filter(id => statusAt(state, id) === 'open').map(id => SITES[id].cell);
+  const presets: { id: string; label: string; sub: string; cells: readonly Cell[] }[] = [
+    ...(state.mission === 'dune-crossing'
+      ? [{ id: 'north', label: t('plan.north'), sub: t('plan.northSub'), cells: DUNE_NORTH }, { id: 'short', label: t('plan.short'), sub: t('plan.shortSub'), cells: [SITES.strata.cell] }]
+      : openCells.length ? [{ id: 'sites', label: t('plan.sites'), sub: t('plan.sitesSub'), cells: openCells }] : []),
+    ...(atLander ? [] : [{ id: 'home', label: t('plan.return'), sub: t('plan.returnSub'), cells: [mission.start] }]),
+  ];
   const tg = guide ? step.target : null;
   const hi = (target: Target) => tg === target ? ' tour-hi' : '';
 
@@ -205,6 +214,7 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
     if (action) { if (!action.reason) { e.preventDefault(); action.run(); } return; }
     if (k === 'm') { e.preventDefault(); setTactical(v => !v); return; }
     if (k === 'h') { e.preventDefault(); if (guide) skipTour(); else showTour(); return; }
+    if (confirmEnd) { if (k === 'escape') setConfirmEnd(false); return; }
     if (k === 'escape') { if (tactical) setTactical(false); else if (garage) setGarage(false); else if (driving) setMode('paused'); return; }
     if (k === 'enter' && !tactical && !garage && !(tgt instanceof HTMLButtonElement) && !(tgt instanceof Element && tgt.closest('[role="dialog"]'))) {
       if (guide && step.ack) { e.preventDefault(); setAcked(s => new Set(s).add(step.id)); return; }
@@ -244,12 +254,12 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
       <div className="hud-score"><div><span>{t('hud.science')}</span><b>{state.science}</b></div><div><span>{t('hud.rc')}</span><b>{state.credits}</b></div></div>
       <LangSwitch className="hud" />
       <button className={'hud-icon-btn' + (guide ? ' on' : '')} onClick={() => guide ? skipTour() : showTour()} aria-label={t('hud.help')} title={t('hud.help') + ' (H)'} aria-pressed={guide}>?</button>
-      <button className={'hud-btn ' + (complete || ended ? 'primary' : 'ghost') + hi('report')} onClick={report} disabled={!!effect}>{t('hud.report')}</button>
+      <button className={'hud-btn ' + (complete || ended ? 'primary' : 'ghost') + hi('report')} onClick={() => { if (complete || ended) report(); else { if (driving) setMode('paused'); setConfirmEnd(true); } }} disabled={!!effect}>{t('hud.report')}</button>
     </header>
 
     <aside className="hud-left">
       <Gauge label={t('hud.battery')} value={state.battery} max={CAPACITY} unit="EU" warn={state.battery <= RESERVE} />
-      <Gauge label={t('hud.time')} value={timeLeft} max={mission.limit} unit="min" warn={timeLeft < 15} />
+      <Gauge label={t('hud.time')} value={timeLeft} max={mission.limit} unit="min" warn={timeLeft < 15} whole />
       <div className="hud-readouts">
         <div className={hi('brake').trim()}><span>{t('hud.speed')}</span><b>{num(speed)}<small>m/s</small></b></div>
         <div><span>{t('hud.sun')}</span><b>{Math.round(light * 100)}<small>%</small></b></div>
@@ -277,21 +287,19 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
     {planning && !ended && <section className="hud-planner" aria-label={t('plan.title')}>
       <header><span>{t('plan.title')}</span><b>{route.length === 0 ? t('plan.none') : route.length === 1 ? t('plan.one') : t('plan.count', { n: route.length })}</b></header>
       <div className={'hud-presets' + hi('presets')}>
-        {state.mission === 'dune-crossing' ? <>
-          <button className="hud-chip" onClick={() => setRoute([...DUNE_NORTH])}>{t('plan.north')}<small>{t('plan.northSub')}</small></button>
-          <button className="hud-chip" onClick={() => setRoute([SITES.strata.cell])}>{t('plan.short')}<small>{t('plan.shortSub')}</small></button>
-        </> : nextOpen && <button className="hud-chip" onClick={() => setRoute(mission.targets.filter(id => statusAt(state, id) === 'open').map(id => SITES[id].cell))}>{t('plan.sites')}<small>{t('plan.sitesSub')}</small></button>}
-        {!atLander && <button className="hud-chip" onClick={() => pick(mission.start)}>{t('plan.return')}<small>{t('plan.returnSub')}</small></button>}
+        {presets.map(p => { const on = sameRoute(route, p.cells); return <button key={p.id} className={'hud-chip' + (on ? ' on' : '')} aria-pressed={on} onClick={e => { e.currentTarget.blur(); if (!on) setRoute([...p.cells]); }}>
+          <span>{p.label}</span><small>{p.sub}</small></button>; })}
       </div>
-      <p className="hud-note left">{t('plan.hint')}</p>
-      {route.length > 0 && <ol className="hud-route">{route.map((c, i) => <li key={i + key(c)}><span>{i + 1}</span>{nameAt(t, c, mission.start)}<small>{terrainName(t, terrainAt(c))}</small>
-        <button aria-label={t('plan.remove', { n: i + 1 })} onClick={() => setRoute(route.filter((_, j) => j !== i))}>×</button></li>)}</ol>}
+      <p className="hud-note left">{route.length && !presets.some(p => sameRoute(route, p.cells)) ? t('plan.custom') : t('plan.hint')}</p>
       {preview.steps.length > 0 && <div className={'hud-estimate' + hi('estimate')}>
         <div><span>{t('est.energy')}</span><b>{range(preview.energy)}<small>EU</small></b></div>
         <div><span>{t('est.time')}</span><b>{range(preview.minutes)}<small>min</small></b></div>
         <div><span>{t('est.risk')}</span><b style={{ color: RISK_COLOR[preview.risk] }}>{t(('risk.' + preview.risk) as Key)}</b></div>
       </div>}
-      {preview.warnings.slice(0, 2).map(x => <p className="hud-warn" key={x}>{m(x)}</p>)}
+      {preview.warnings.slice(0, 2).map(x => <p className="hud-warn" key={x}>{/unsurveyed sectors/.test(x) ? t('warn.unknown', { n: preview.unknown }) : m(x)}</p>)}
+      {route.length > 0 && <ol className="hud-route">{route.map((c, i) => <li key={i + key(c)}><span>{i + 1}</span>{nameAt(t, c, mission.start)}
+        <small>{num(distance(i ? route[i - 1] : state.position, c) * TILE_SIZE, 0)} m · {terrainName(t, terrainAt(c))}</small>
+        <button aria-label={t('plan.remove', { n: i + 1 })} title={t('plan.remove', { n: i + 1 })} onClick={() => setRoute(route.filter((_, j) => j !== i))}>×</button></li>)}</ol>}
       <div className="hud-planner-foot">
         {route.length > 0 && <button className="hud-btn ghost" onClick={() => setRoute([])}>{t('plan.clear')}</button>}
         <button className={'hud-btn primary big' + hi('start')} onClick={e => { e.currentTarget.blur(); setMode('driving'); }} disabled={!!effect}>{t('plan.start')}<kbd>Enter</kbd></button>
@@ -322,6 +330,15 @@ export function Operations({ state, route, setRoute, mode, setMode, act, effect,
         <header><b>{t('map.title')}</b><span>{canEdit ? t('map.edit') : t('map.locked')}</span><button className="hud-icon-btn" onClick={() => setTactical(false)} aria-label={t('map.close')}>×</button></header>
         <TacticalMap state={state} preview={preview} route={remaining} onPick={canEdit ? pick : undefined} />
         <footer>{(Object.keys(TERRAIN) as TerrainKind[]).map(k => <span key={k}><i style={{ background: TERRAIN[k].color }} />{terrainName(t, k)}</span>)}<span><i className="ring" />{t('map.site')}</span><span><i className="lander" />{t('hud.lander')}</span></footer>
+      </div>
+    </div>}
+
+    {confirmEnd && <div className="hud-overlay" role="alertdialog" aria-label={t('end.title')} onClick={e => { if (e.target === e.currentTarget) setConfirmEnd(false); }}>
+      <div className="hud-overlay-panel hud-confirm">
+        <b>{t('end.title')}</b>
+        <p>{t('end.body')}</p>
+        <div><button className="hud-btn ghost" onClick={() => setConfirmEnd(false)} autoFocus>{t('end.cancel')}</button>
+          <button className="hud-btn primary" onClick={() => { setConfirmEnd(false); report(); }}>{t('end.confirm')}</button></div>
       </div>
     </div>}
 

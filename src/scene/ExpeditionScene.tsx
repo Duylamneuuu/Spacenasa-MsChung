@@ -59,6 +59,9 @@ function bakeTerrain() {
   return geometry;
 }
 
+// Width of the Route Plan panel (hud.css .hud-planner) plus its margin.
+const PLANNER_W = 376;
+
 function GameCamera({ state, mode }: { state: MissionState; mode: ControlMode }) {
   const { camera, size } = useThree();
   const eye = useMemo(() => new Vector3(), []);
@@ -74,11 +77,16 @@ function GameCamera({ state, mode }: { state: MissionState; mode: ControlMode })
       eye.set(x - sx * 10.5, y + 5.2, z - sz * 10.5);
       look.set(x + sx * 5, y + 1.1, z + sz * 5);
     } else {
-      const aspect = size.width / Math.max(1, size.height);
-      const reach = 1 + Math.max(0, 1.55 - aspect) * .9;
+      const aspect = (size.width - (size.width > 760 ? PLANNER_W : 0)) / Math.max(1, size.height);
+      const reach = 1 + Math.max(0, 1.7 - aspect) * .9;
       eye.set(x * .35, 44 * reach, 34 * reach + z * .35);
       look.set(x * .35, 0, 2 + z * .35);
     }
+    // Keep the planning view centred in the space left of the Route Plan panel.
+    const shift = !chase && size.width > 760 ? PLANNER_W / 2 : 0;
+    const view = cam.view;
+    if (shift && (!view || !view.enabled || Math.abs(view.offsetX - shift) > .5 || view.fullWidth !== size.width || view.fullHeight !== size.height)) cam.setViewOffset(size.width, size.height, shift, 0, size.width, size.height);
+    else if (!shift && view && view.enabled) cam.clearViewOffset();
     const delta = Math.min(dt, 0.05);
     const k = first.current ? 1 : 1 - Math.exp(-delta * (chase ? 5.5 : 3.2));
     first.current = false;
@@ -389,8 +397,8 @@ function HangarCamera() {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
     const narrow = size.width < 760;
-    camera.position.set(narrow ? 0 : 2.6, narrow ? 3.2 : 2.9, narrow ? 9.5 : 9.4);
-    camera.lookAt(narrow ? 0 : 2.5, narrow ? .7 : .55, 0);
+    camera.position.set(narrow ? 0 : 1.9, narrow ? 3.2 : 3.4, narrow ? 9.5 : 11.6);
+    camera.lookAt(narrow ? 0 : 1.9, narrow ? .7 : 1.05, 0);
   }, [camera, size.width]);
   return null;
 }
