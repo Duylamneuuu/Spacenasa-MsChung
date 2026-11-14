@@ -51,21 +51,21 @@ The current 3D scene, simulation and resource values are **mock placeholders**, 
 |---|---|---|
 | **Duy** | Product Lead, UI/UX, frontend integration | `feat/ui` |
 | **Bảo** | Three.js 2.5D scene, visual interactions, 3D assets/animation | `feat/scene` |
-| **Hải** | Simulation engine, NASA data integration, tests | `feat/simulation` |
-| **Sơn (HUST)** | Aerospace/science reviewer, NASA sources, scientific validation | Science documentation / review |
-| **Cường (PTIT)** | Game design, visual assets, event flow, pitch materials | Design documentation / assets |
+| **Hải** | Game rules, resource calculation, simulation engine, tests (consumes data) | `feat/simulation` |
+| **Sơn (HUST)** | Scientific idea, verified NASA datasets, source citations, scientific validation | `feat/content-data` |
+| **Cường (PTIT)** | Game concept, mission narrative, choice events, design assets, pitch | `feat/content-data` |
 
 - **One repository, one application.**
 - Integrator owns `src/App.tsx`, app entrypoints, styles and dependency changes.
 - Scene/gameplay contributor owns `src/scene/`, animation, 3D assets.
-- Simulation contributor owns `src/sim/`, `src/data/`, game rules and tests.
-- Aerospace reviewer validates science, data and any simplified equations.
-- Game designer owns experience flow, event wording, asset guide, usability, slides/demo.
+- Simulation contributor **Hải** owns `src/sim/` and tests; he reads but does not own datasets or narrative content.
+- **Content + Data** workstream is shared by **Sơn + Cường**: Sơn owns `src/data/`, `docs/science/`; Cường owns `src/content/`, `docs/design/`, and `public/assets/ui/`. Work on one shared branch without overwriting each other's folders.
+- Sơn verifies NASA sources, units, limits and scientific assumptions; Cường defines the narrative flow, events, game choices and visual design. Duy approves final MVP scope.
 - Agree the shared interfaces in `docs/INTERFACES.md` **before** coding independently.
-- Branches: `feat/ui`, `feat/scene`, `feat/simulation`; PR into `main` or the coordinator's agreed integration branch. Do not rewrite another person's folder or overwrite `package.json` independently.
+- **Exactly four workstream branches:** `feat/ui`, `feat/scene`, `feat/simulation`, `feat/content-data`; PR into `main` or the coordinator's agreed integration branch. Do not rewrite another person's folder or overwrite `package.json` independently.
 - Integrate a minimal end-to-end slice early, not three standalone apps.
 
-See `docs/CONCEPT.md`, `docs/INTERFACES.md`, and `docs/TEAM_PLAN.md`.
+See `docs/CONCEPT.md`, `docs/INTERFACES.md`, `docs/TEAM_PLAN.md`, and `docs/CONTENT_DATA.md`.
 
 ## Official context
 
